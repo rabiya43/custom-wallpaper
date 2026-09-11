@@ -6,7 +6,7 @@
     --accent-color: #A5C271;
     --glow-color: #E2F3B9;
     --char-font: 'Chewy', cursive;
-    --time-font: 'Fredoka', sans-serif;
+    --time-font: 'DynaPuff', cursive;
     --base-font: 'Inter', sans-serif;
 }
 
@@ -58,9 +58,22 @@ body {
 }
 .close-btn:hover {
     color: #FFF;
+    transform: scale(1.1);
 }
 .drag-widget:hover .close-btn {
     display: block;
+}
+
+/* Micro-Interactions */
+.interactive-btn {
+    cursor: pointer;
+    transition: transform 0.1s ease, filter 0.2s ease;
+}
+.interactive-btn:hover {
+    filter: brightness(1.2);
+}
+.interactive-btn:active {
+    transform: scale(0.92);
 }
 
 /* Resizable Widgets */
@@ -73,7 +86,6 @@ body {
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     transition: background 0.4s ease, border-color 0.4s ease;
     
-    /* Truly Resizable */
     resize: both;
     overflow: auto;
     min-width: 120px;
@@ -103,29 +115,22 @@ body {
     color: var(--accent-color);
 }
 
-.moon-widget {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.moon-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    box-shadow: inset -6px -2px 0px 0px #FFF;
-    filter: drop-shadow(0 0 5px rgba(255,255,255,0.7));
-    transform: rotate(-15deg);
-}
-
-/* Weather */
+/* Weather Integrated Widget */
 .weather-widget {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    /* Allows dynamic JS backgrounds (like sunny gradient) to blend nicely */
+    background-blend-mode: overlay;
 }
-.weather-icon i {
-    font-size: 2rem;
-    color: #FFF;
+.weather-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.weather-emoji {
+    font-size: 2.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 .weather-temp {
     font-size: 2.8rem;
@@ -133,15 +138,24 @@ body {
     color: #FFF;
 }
 .weather-desc {
-    font-size: 0.85rem;
-    line-height: 1.2;
-    color: var(--accent-color);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-text);
     text-transform: capitalize;
+}
+.weather-details {
+    font-size: 0.85rem;
+    color: var(--accent-color);
+    display: flex;
+    gap: 10px;
+    margin-top: -2px;
 }
 .weather-loc {
     font-size: 0.85rem;
     font-weight: 700;
-    margin-top: 2px;
+    margin-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 6px;
 }
 
 /* Curved & Glittery Floating Text */
@@ -150,10 +164,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    
-    /* Make Resizable */
     resize: both;
-    overflow: hidden; /* Changed from visible to allow resizing */
+    overflow: hidden; 
     padding: 10px;
     min-width: 200px;
     min-height: 100px;
@@ -170,7 +182,11 @@ body {
     filter: drop-shadow(0 0 8px var(--glow-color)) drop-shadow(0 0 20px var(--glow-color));
     stroke: rgba(255, 255, 255, 0.9);
     stroke-width: 1.5px;
-    transition: all 0.4s ease;
+    transition: filter 0.3s ease;
+    cursor: default;
+}
+.curved-svg text:hover {
+    filter: drop-shadow(0 0 15px var(--glow-color)) drop-shadow(0 0 30px var(--glow-color));
 }
 
 /* Calendar */
@@ -196,12 +212,18 @@ body {
     font-weight: 600;
 }
 .calendar-grid span {
-    padding: 3px 0;
+    padding: 4px 0;
+    border-radius: 5px;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+.calendar-grid span:not(:empty):hover {
+    background: rgba(255,255,255,0.2);
+    cursor: pointer;
+    transform: scale(1.1);
 }
 .calendar-grid .active-day {
-    background: var(--primary-text);
+    background: var(--primary-text) !important;
     color: var(--bg-color);
-    border-radius: 50%;
     font-weight: bold;
 }
 
@@ -213,6 +235,14 @@ body {
     flex-direction: column;
     gap: 10px;
 }
+#todo-list-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+#todo-list-container::-webkit-scrollbar { width: 0px; }
 .todo-item {
     display: flex;
     align-items: flex-start;
@@ -228,6 +258,7 @@ body {
     cursor: pointer;
     margin-top: 2px;
     flex-shrink: 0;
+    transition: background 0.2s ease;
 }
 .todo-item input[type="checkbox"]:checked {
     background-color: var(--accent-color);
@@ -247,7 +278,21 @@ body {
     cursor: pointer;
     font-size: 0.9rem;
 }
+.todo-item .delete-btn:hover { color: #FF6B6B; }
 
+/* Enhanced Add Todo Input */
+.add-todo-container {
+    display: flex;
+    align-items: center;
+    background: rgba(0,0,0,0.15);
+    border-radius: 10px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+.add-todo-container:focus-within {
+    border-color: var(--accent-color);
+}
 .add-todo-container input[type="text"] {
     background: transparent;
     border: none;
@@ -255,63 +300,63 @@ body {
     font-family: inherit;
     font-size: 0.95rem;
     outline: none;
-    width: 100%;
+    flex-grow: 1;
 }
-.add-todo-container input[type="text"]::placeholder { color: var(--accent-color); }
+.add-todo-container input[type="text"]::placeholder { color: rgba(255,255,255,0.5); }
+.add-todo-container button {
+    background: var(--accent-color);
+    border: none;
+    color: var(--bg-color);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
 
-/* Right Panel Elements */
-.datetime-container {
-    text-align: right;
-    text-shadow: 0 6px 12px rgba(0,0,0,0.3);
-    
-    /* Make Resizable */
+/* Separate Date and Time Panels */
+.date-container, .time-container {
     resize: both;
-    overflow: hidden; /* Changed from visible to allow resizing */
+    overflow: hidden; 
     padding: 15px;
-    min-width: 250px;
-    
-    /* Add Floating Hover Effect */
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s ease;
+    container-type: inline-size;
+    text-align: right;
 }
 
-.datetime-container:hover {
-    transform: translateY(-15px); /* Floats up slightly */
-    filter: drop-shadow(0 15px 25px rgba(0,0,0,0.4));
+.date-display, .time-display {
+    font-family: var(--time-font);
+    color: var(--primary-text);
+    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    line-height: 1;
+}
+
+.date-container .close-btn, .time-container .close-btn {
+    color: var(--primary-text);
+    right: 0;
 }
 
 .date-display {
-    font-size: 2rem;
-    font-weight: 500;
-    margin-bottom: -15px;
-    color: #F9FDF0;
+    font-size: max(2rem, 10cqw);
 }
 
 .time-display {
-    font-family: var(--time-font);
-    font-size: 7rem; /* Significantly reduced size */
-    font-weight: 600;
-    color: var(--primary-text);
-    line-height: 1;
-    letter-spacing: -1px;
     display: flex;
     align-items: flex-end;
     justify-content: flex-end;
-    
-    /* Container Query scaling for resize */
-    container-type: inline-size;
 }
 
-/* Allow text to scale if container resizes */
-.time-display span {
-    font-size: max(5rem, 20cqw);
+.time-display #time-display {
+    font-size: max(4.5rem, 20cqw);
 }
 .time-display #ampm-display {
-    font-size: max(1.5rem, 5cqw);
-    margin-left: 10px;
-    margin-bottom: 5px;
+    font-size: max(1.5rem, 6cqw);
+    margin-left: 8px;
+    margin-bottom: 6px;
 }
 
-/* AI Theme Switcher */
+/* Re-styled Theme Switcher */
 .theme-switcher {
     background: var(--widget-bg);
     padding: 15px 20px;
@@ -320,35 +365,39 @@ body {
     display: flex;
     gap: 10px;
     align-items: center;
-    border: 1px solid var(--widget-border);
+    border: 2px solid rgba(255,255,255,0.2);
     resize: both;
     overflow: auto;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+.theme-switcher:focus-within {
+    border-color: var(--accent-color);
 }
 
 .theme-switcher input {
-    background: rgba(0,0,0,0.2);
+    background: rgba(255,255,255,0.9);
     border: none;
     padding: 10px 15px;
     border-radius: 10px;
-    color: #FFF;
+    color: #111;
     font-family: var(--base-font);
     font-size: 1rem;
+    font-weight: 500;
     outline: none;
     width: 180px;
 }
+.theme-switcher input::placeholder { color: #666; }
 
-.theme-switcher button {
+.cta-btn {
     background: var(--accent-color);
     border: none;
-    padding: 10px 15px;
+    padding: 10px 18px;
     border-radius: 10px;
     color: var(--bg-color);
-    font-weight: bold;
-    cursor: pointer;
+    font-weight: 700;
     font-size: 1rem;
     font-family: var(--base-font);
-    transition: transform 0.2s;
-}
-.theme-switcher button:hover {
-    transform: scale(1.05);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
 }

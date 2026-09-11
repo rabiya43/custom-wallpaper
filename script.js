@@ -1,19 +1,23 @@
-// --- Draggable & Resizable Independent Widgets ---
+// --- Draggable, Resizable, & Magnetic Snapping Widgets ---
 function makeDraggable(elmnt) {
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     
     elmnt.onmousedown = function(e) {
-        // Prevent dragging if interacting with inputs, buttons, tasks, or the close (X) button
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('.todo-item') || e.target.closest('#alarm-widget') || e.target.closest('.close-btn')) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('.interactive-btn') || e.target.closest('.todo-item') || e.target.closest('.close-btn')) {
             return;
         }
         
-        // CRITICAL FIX: Prevent dragging when user clicks the bottom-right corner to RESIZE the widget.
         const rect = elmnt.getBoundingClientRect();
         const isResizeHandle = (e.clientX > rect.right - 25 && e.clientY > rect.bottom - 25);
         if (isResizeHandle) return;
 
-        dragMouseDown(e);
+        elmnt.style.transition = 'none';
+
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
     };
 
     function dragMouseDown(e) {
@@ -30,17 +34,42 @@ function makeDraggable(elmnt) {
         pos2 = pos4 - e.clientY;
         pos3 = e.clientX;
         pos4 = e.clientY;
+        
         elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
         elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
         elmnt.style.right = "auto";
         elmnt.style.bottom = "auto";
     }
-    function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
+    
+    function closeDragElement() { 
+        document.onmouseup = null; 
+        document.onmousemove = null; 
+
+        const snapDistance = 60; 
+        const edgePadding = 40;  
+        
+        const rect = elmnt.getBoundingClientRect();
+        elmnt.style.transition = 'top 0.3s ease, left 0.3s ease';
+
+        if (rect.left < snapDistance) {
+            elmnt.style.left = edgePadding + 'px';
+        } else if (window.innerWidth - rect.right < snapDistance) {
+            elmnt.style.left = (window.innerWidth - rect.width - edgePadding) + 'px';
+        }
+
+        if (rect.top < snapDistance) {
+            elmnt.style.top = edgePadding + 'px';
+        } else if (window.innerHeight - rect.bottom < snapDistance) {
+            elmnt.style.top = (window.innerHeight - rect.height - edgePadding) + 'px';
+        }
+        
+        setTimeout(() => {
+            elmnt.style.transition = 'background 0.4s ease, border-color 0.4s ease';
+        }, 300);
+    }
 }
 
-// Apply drag logic to all individual widgets
 document.querySelectorAll('.drag-widget').forEach(makeDraggable);
-
 
 // --- 100% RELIABLE NO-KEY CHARACTER THEMING (Wikipedia Method) ---
 
@@ -78,7 +107,7 @@ async function generateAITheme() {
             text: `#F9FDF0`
         };
 
-        const fonts = ['Chewy', 'Bangers', 'Pacifico', 'Righteous', 'Titan One', 'Lobster', 'Carter One', 'Alfa Slab One', 'Sigmar One'];
+        const fonts = ['Chewy', 'Bangers', 'Pacifico', 'Righteous', 'Lobster', 'Carter One', 'Alfa Slab One', 'Sigmar One'];
         const fontName = fonts[Math.abs(hash) % fonts.length];
         theme.font = fontName;
 
@@ -128,11 +157,10 @@ if (savedThemeData) {
 function updateTimeAndDate() {
     const now = new Date();
     
-    // 12 Hour Format (4 PM instead of 16)
     let hours = now.getHours();
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12;
-    hours = hours ? hours : 12; // 0 becomes 12
+    hours = hours ? hours : 12; 
     const minutes = now.getMinutes().toString().padStart(2, '0');
     
     document.getElementById('time-display').innerText = `${hours}:${minutes}`;
@@ -187,9 +215,12 @@ async function updateBattery() {
 }
 updateBattery();
 
+// --- Todo List Logic ---
 const todoInput = document.getElementById('todo-input');
 const todoListContainer = document.getElementById('todo-list-container');
+const addTodoBtn = document.getElementById('add-todo-btn');
 let reminders = JSON.parse(localStorage.getItem('buttercup-reminders')) || [];
+
 function saveAndRenderReminders() {
     localStorage.setItem('buttercup-reminders', JSON.stringify(reminders));
     todoListContainer.innerHTML = '';
@@ -203,21 +234,60 @@ function saveAndRenderReminders() {
         div.append(cb, txt, del); todoListContainer.appendChild(div);
     });
 }
-todoInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && e.target.value.trim()) { reminders.push({text: e.target.value, checked: false}); e.target.value = ''; saveAndRenderReminders(); }
-});
+function addTodo() {
+    const val = todoInput.value.trim();
+    if (val) {
+        reminders.push({text: val, checked: false});
+        todoInput.value = '';
+        saveAndRenderReminders();
+    }
+}
+todoInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTodo(); });
+addTodoBtn.addEventListener('click', addTodo);
 saveAndRenderReminders();
+
+// --- Integrated Weather Logic with Condition Mapping ---
+const weatherCodeMap = {
+    0: { desc: 'Clear sky', emoji: '☀️', bg: 'linear-gradient(135deg, rgba(255,215,0,0.2), transparent)' },
+    1: { desc: 'Mainly clear', emoji: '🌤️', bg: 'linear-gradient(135deg, rgba(255,215,0,0.1), transparent)' },
+    2: { desc: 'Partly cloudy', emoji: '⛅', bg: 'linear-gradient(135deg, rgba(200,200,200,0.2), transparent)' },
+    3: { desc: 'Overcast', emoji: '☁️', bg: 'linear-gradient(135deg, rgba(150,150,150,0.3), transparent)' },
+    45: { desc: 'Foggy', emoji: '🌫️', bg: 'linear-gradient(135deg, rgba(200,200,200,0.4), transparent)' },
+    48: { desc: 'Depositing rime fog', emoji: '🌫️', bg: 'linear-gradient(135deg, rgba(200,200,200,0.4), transparent)' },
+    51: { desc: 'Light drizzle', emoji: '🌦️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.2), transparent)' },
+    53: { desc: 'Moderate drizzle', emoji: '🌧️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.3), transparent)' },
+    55: { desc: 'Dense drizzle', emoji: '🌧️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.4), transparent)' },
+    61: { desc: 'Slight rain', emoji: '🌦️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.2), transparent)' },
+    63: { desc: 'Moderate rain', emoji: '🌧️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.3), transparent)' },
+    65: { desc: 'Heavy rain', emoji: '🌧️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.5), transparent)' },
+    71: { desc: 'Slight snow', emoji: '🌨️', bg: 'linear-gradient(135deg, rgba(255,255,255,0.3), transparent)' },
+    73: { desc: 'Moderate snow', emoji: '❄️', bg: 'linear-gradient(135deg, rgba(255,255,255,0.4), transparent)' },
+    75: { desc: 'Heavy snow', emoji: '❄️', bg: 'linear-gradient(135deg, rgba(255,255,255,0.5), transparent)' },
+    95: { desc: 'Thunderstorm', emoji: '⛈️', bg: 'linear-gradient(135deg, rgba(100,50,150,0.4), transparent)' },
+};
 
 async function fetchWeather(lat, lon) {
     try {
         const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m`);
         const data = await res.json();
+        
         document.getElementById('weather-temp').innerHTML = `${Math.round(data.current_weather.temperature)}&deg;`;
         document.getElementById('humidity-level').innerText = `${data.hourly.relativehumidity_2m[0]}%`;
+        
+        // Map Condition
+        const code = data.current_weather.weathercode;
+        const condition = weatherCodeMap[code] || { desc: 'Unknown', emoji: '🌡️', bg: 'transparent' };
+        document.getElementById('weather-desc').innerText = condition.desc;
+        document.getElementById('weather-emoji').innerText = condition.emoji;
+        
+        // Apply subtle weather gradient to widget
+        document.getElementById('weather-container').style.background = `var(--widget-bg), ${condition.bg}`;
         
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
         const geoData = await geoRes.json();
         document.getElementById('weather-loc').innerText = geoData.address.city || geoData.address.town || 'Your Location';
-    } catch(e) {}
+    } catch(e) {
+        document.getElementById('weather-desc').innerText = "Unavailable";
+    }
 }
 if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => fetchWeather(p.coords.latitude, p.coords.longitude));

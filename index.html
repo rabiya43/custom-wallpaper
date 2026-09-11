@@ -6,18 +6,17 @@
     <title>Live Wallpaper Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DynaPuff:wght@500;600;700&display=swap" rel="stylesheet">
     <link id="dynamic-font" href="https://fonts.googleapis.com/css2?family=Chewy&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="dashboard-container">
         
-        <!-- Individual Draggable & Deletable Widgets -->
-        
+        <!-- System Widget (Alarm & Battery) -->
         <div class="widget drag-widget" style="top: 40px; left: 40px; width: 180px;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
             <div class="widget-row">
-                <div class="small-widget" id="alarm-widget" style="cursor: pointer;" title="Set alarm">
+                <div class="small-widget interactive-btn" id="alarm-widget" title="Set alarm">
                     <i class="fa-solid fa-bell"></i>
                     <span id="alarm-time">Off</span>
                 </div>
@@ -28,16 +27,21 @@
             </div>
         </div>
 
-        <div class="widget drag-widget weather-widget" style="top: 150px; left: 40px; width: 180px;">
+        <!-- Integrated Weather & Humidity Widget -->
+        <div class="widget drag-widget weather-widget" style="top: 150px; left: 40px; width: 180px;" id="weather-container">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
-            <div class="weather-icon">
-                <i class="fa-solid fa-cloud-bolt" id="weather-icon-display"></i>
+            <div class="weather-header">
+                <div class="weather-temp" id="weather-temp">--&deg;</div>
+                <div class="weather-emoji" id="weather-emoji">☁️</div>
             </div>
-            <div class="weather-temp" id="weather-temp">--&deg;</div>
             <div class="weather-desc" id="weather-desc">Fetching...</div>
+            <div class="weather-details">
+                <span><i class="fa-solid fa-droplet"></i> <span id="humidity-level">--%</span></span>
+            </div>
             <div class="weather-loc" id="weather-loc">Locating...</div>
         </div>
 
+        <!-- Character Text -->
         <div class="floating-text-container drag-widget" style="top: 360px; left: 40px; width: 350px;">
             <span class="close-btn" onclick="this.parentElement.remove()" style="color: white; text-shadow: 0 0 5px black; right: 0;">&times;</span>
             <svg viewBox="0 0 400 150" class="curved-svg">
@@ -50,20 +54,8 @@
             </svg>
         </div>
 
-        <div class="widget drag-widget" style="top: 520px; left: 40px; width: 180px;">
-            <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
-            <div class="widget-row">
-                <div class="small-widget moon-widget" title="Moon Phase">
-                    <div class="moon-icon"></div>
-                </div>
-                <div class="small-widget">
-                    <i class="fa-solid fa-droplet"></i>
-                    <span id="humidity-level">--%</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="widget drag-widget calendar-widget" style="top: 630px; left: 40px; width: 180px;">
+        <!-- Calendar Widget -->
+        <div class="widget drag-widget calendar-widget" style="top: 500px; left: 40px; width: 180px;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
             <div class="calendar-header" id="calendar-month">DEC</div>
             <div class="calendar-grid-header">
@@ -72,27 +64,36 @@
             <div class="calendar-grid" id="calendar-grid"></div>
         </div>
 
-        <div class="widget drag-widget todo-widget" style="top: 790px; left: 40px; width: 220px; height: 160px;">
+        <!-- Reminders / Todo Widget -->
+        <div class="widget drag-widget todo-widget" style="top: 660px; left: 40px; width: 220px; height: 180px;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
             <div id="todo-list-container"></div>
-            <div class="todo-item add-todo-container">
-                <input type="text" id="todo-input" placeholder="Add Reminders..." autocomplete="off">
+            <div class="add-todo-container">
+                <input type="text" id="todo-input" placeholder="Type a reminder...">
+                <button id="add-todo-btn" class="interactive-btn"><i class="fa-solid fa-plus"></i></button>
             </div>
         </div>
 
-        <div class="drag-widget datetime-container" style="top: 40px; right: 40px;">
-            <span class="close-btn" onclick="this.parentElement.remove()" style="color: white; text-shadow: 0 0 5px black; right: 0;">&times;</span>
+        <!-- Date Widget -->
+        <div class="drag-widget date-container" style="top: 40px; right: 40px; width: 250px;">
+            <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
             <div class="date-display" id="date-display">Mon, December 1</div>
+        </div>
+
+        <!-- Time Widget -->
+        <div class="drag-widget time-container" style="top: 150px; right: 40px; width: 280px;">
+            <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
             <div class="time-display">
                 <span id="time-display">4:56</span>
-                <span id="ampm-display" style="font-size: 3rem; margin-left: 5px;">PM</span>
+                <span id="ampm-display">PM</span>
             </div>
         </div>
 
+        <!-- Theme Switcher -->
         <div class="theme-switcher drag-widget" style="bottom: 40px; right: 40px;">
             <span class="close-btn" onclick="this.parentElement.remove()" style="right: -10px; top: -10px;">&times;</span>
-            <input type="text" id="theme-input" placeholder="Character Name...">
-            <button onclick="generateAITheme()">Apply Character Theme</button>
+            <input type="text" id="theme-input" placeholder="Type character name...">
+            <button onclick="generateAITheme()" class="interactive-btn cta-btn">Apply Theme</button>
         </div>
 
     </div>
