@@ -11,9 +11,18 @@
 </head>
 <body>
     <!-- Full-Screen Character Wallpaper Layer (behind everything) -->
-    <div id="character-wallpaper">
-        <img id="character-wallpaper-img" src="" alt="">
+    <div id="character-wallpaper" class="mode-center">
+        <img id="character-wallpaper-img" src="" alt="Wallpaper">
         <div id="character-wallpaper-overlay"></div>
+    </div>
+
+    <!-- Drag & Drop Overlay (Visible when dragging an image from desktop) -->
+    <div id="drag-drop-overlay">
+        <div class="drop-modal">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <h3>Drop your wallpaper here</h3>
+            <p>Supports PNG, JPG, WebP, GIF</p>
+        </div>
     </div>
 
     <div class="dashboard-container">
@@ -81,11 +90,84 @@
             </div>
         </div>
 
-        <!-- Theme Switcher -->
-        <div class="theme-switcher drag-widget" style="bottom: 50px; right: 50px; padding: 10px 15px; border-radius: 20px;">
+        <!-- Aesthetic Theme & Wallpaper Control Panel -->
+        <div class="theme-panel drag-widget" style="bottom: 40px; right: 40px; width: 340px;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
-            <input type="text" id="theme-input" placeholder="e.g. Buttercup Powerpuff Girls" style="width: 220px; padding: 8px 12px; font-size: 0.85rem; border-radius: 10px;">
-            <button onclick="generateAITheme()" class="interactive-btn cta-btn" style="padding: 8px 15px; font-size: 0.85rem; border-radius: 10px;">APPLY THEME</button>
+            
+            <div class="panel-header">
+                <i class="fa-solid fa-palette"></i>
+                <span>THEME & WALLPAPER</span>
+            </div>
+
+            <!-- Upload & Image Actions -->
+            <div class="panel-row">
+                <label class="panel-btn upload-btn" title="Choose an image file from your PC">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>Upload Image</span>
+                    <input type="file" id="wallpaper-file-input" accept="image/*" style="display:none;">
+                </label>
+                <button class="panel-btn icon-btn" id="toggle-fit-btn" title="Switch between Center Character Art and Full Screen Cover">
+                    <i class="fa-solid fa-expand"></i>
+                    <span id="fit-label">Cover</span>
+                </button>
+                <button class="panel-btn icon-btn danger-btn" id="clear-wallpaper-btn" title="Clear image">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+
+            <!-- Quick Character Palette Presets -->
+            <div class="palette-chips-container">
+                <button class="palette-chip active" data-char="buttercup" title="Buttercup (Emerald & Lime)">
+                    <span class="chip-color" style="background: linear-gradient(135deg, #2D5A46, #A5C271);"></span>
+                    Buttercup
+                </button>
+                <button class="palette-chip" data-char="blossom" title="Blossom (Rose & Coral)">
+                    <span class="chip-color" style="background: linear-gradient(135deg, #D87093, #FF7F50);"></span>
+                    Blossom
+                </button>
+                <button class="palette-chip" data-char="bubbles" title="Bubbles (Ocean & Gold)">
+                    <span class="chip-color" style="background: linear-gradient(135deg, #4682B4, #FFD700);"></span>
+                    Bubbles
+                </button>
+                <button class="palette-chip" data-char="snow white" title="Snow White (Royal Blue & Amber)">
+                    <span class="chip-color" style="background: linear-gradient(135deg, #2B3A67, #FFD166);"></span>
+                    Snow White
+                </button>
+                <button class="palette-chip" data-char="tweety" title="Tweety (Canary Yellow & Sky)">
+                    <span class="chip-color" style="background: linear-gradient(135deg, #E6AF2E, #4FC3F7);"></span>
+                    Tweety
+                </button>
+                <button class="palette-chip" data-char="annabelle" title="Annabelle (Gothic Crimson & Noir)">
+                    <span class="chip-color" style="background: linear-gradient(135deg, #2D0A0A, #C44545);"></span>
+                    Annabelle
+                </button>
+                <button class="palette-chip" data-char="midnight" title="Midnight Noir (Dark Velvet & Silver)">
+                    <span class="chip-color" style="background: linear-gradient(135deg, #11141A, #3A3F4D);"></span>
+                    Midnight
+                </button>
+                <button class="palette-chip" data-char="cyberpunk" title="Cyberpunk (Deep Purple & Neon Cyan)">
+                    <span class="chip-color" style="background: linear-gradient(135deg, #4A148C, #00E5FF);"></span>
+                    Cyber
+                </button>
+            </div>
+
+            <!-- Custom Color Pickers -->
+            <div class="custom-colors-row">
+                <label title="Gradient Start Color">
+                    <span>Color 1</span>
+                    <input type="color" id="bg-color-1-picker" value="#2D5A46">
+                </label>
+                <label title="Gradient End Color">
+                    <span>Color 2</span>
+                    <input type="color" id="bg-color-2-picker" value="#509F8C">
+                </label>
+                <div class="search-wrap">
+                    <input type="text" id="theme-input" placeholder="Type character...">
+                    <button id="apply-theme-name-btn" title="Apply name palette"><i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <div class="drop-hint">💡 Tip: Drag & drop any image onto the screen</div>
         </div>
 
     </div>

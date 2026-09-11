@@ -18,41 +18,111 @@
 
 body {
     font-family: var(--base-font);
-    background: linear-gradient(135deg, var(--bg-color-1, #509F8C), var(--bg-color-2, #2D5A46));
+    background: radial-gradient(circle at 50% 30%, rgba(255,255,255,0.08) 0%, transparent 60%),
+                linear-gradient(135deg, var(--bg-color-1, #2D5A46), var(--bg-color-2, #509F8C));
     color: var(--primary-text);
     height: 100vh;
     overflow: hidden;
-    transition: background 0.5s ease;
+    transition: background 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Full-Screen Character Wallpaper Layer */
 #character-wallpaper {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    inset: 0;
     z-index: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    overflow: hidden;
 }
 #character-wallpaper img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
     opacity: 0;
-    transition: opacity 0.6s ease;
-    filter: drop-shadow(0 0 60px rgba(0,0,0,0.4));
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 #character-wallpaper img.loaded {
     opacity: 1;
 }
+
+/* Center Character Art Mode (Transparent PNGs / solo character art) */
+#character-wallpaper.mode-center img {
+    max-width: 70vw;
+    max-height: 88vh;
+    object-fit: contain;
+    object-position: center bottom;
+    filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.45));
+}
+
+/* Full Wallpaper Cover Mode (16:9 wallpapers, scenic photos, full backgrounds) */
+#character-wallpaper.mode-cover img {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    object-position: center;
+    filter: brightness(0.85);
+}
+
+/* Ambient vignette overlay (Ensures widgets on all corners stay readable) */
 #character-wallpaper-overlay {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, var(--bg-color-1, #509F8C) 0%, transparent 35%, transparent 65%, var(--bg-color-2, #2D5A46) 100%);
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(0, 0, 0, 0.32) 100%),
+                linear-gradient(90deg, rgba(0,0,0,0.22) 0%, transparent 25%, transparent 75%, rgba(0,0,0,0.22) 100%);
     pointer-events: none;
-    transition: background 0.5s ease;
+}
+
+/* Drag & Drop Full Screen Overlay */
+#drag-drop-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(12, 16, 22, 0.78);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+#drag-drop-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+.drop-modal {
+    padding: 45px 65px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px dashed var(--accent-color, #A5C271);
+    border-radius: 26px;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    transform: scale(0.95);
+    transition: transform 0.25s ease;
+}
+#drag-drop-overlay.active .drop-modal {
+    transform: scale(1);
+}
+.drop-modal i {
+    font-size: 3.5rem;
+    color: var(--accent-color, #A5C271);
+    margin-bottom: 16px;
+    display: block;
+}
+.drop-modal h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    font-family: var(--base-font);
+}
+.drop-modal p {
+    font-size: 0.95rem;
+    opacity: 0.75;
+    font-family: var(--base-font);
 }
 
 .dashboard-container {
@@ -116,12 +186,13 @@ body {
 /* Resizable Widgets */
 .widget {
     background: var(--widget-bg);
-    border: none;
-    border-radius: 18px;
-    padding: 15px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    transition: background 0.4s ease, border-color 0.4s ease;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 20px;
+    padding: 16px;
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.22), inset 0 1px 1px rgba(255,255,255,0.15);
+    transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
     /* Edit Mode Constraints - Clean by Default */
     resize: none;
     overflow: visible;
@@ -422,48 +493,200 @@ body {
     margin-bottom: 6px;
 }
 
-/* Re-styled Theme Switcher */
-.theme-switcher {
+/* Aesthetic Theme & Wallpaper Control Panel */
+.theme-panel {
     background: var(--widget-bg);
-    padding: 15px 20px;
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
+    padding: 16px 18px;
+    border-radius: 22px;
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.12);
     display: flex;
-    gap: 10px;
-    align-items: center;
-    border: 2px solid rgba(255,255,255,0.2);
+    flex-direction: column;
+    gap: 12px;
+    user-select: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    resize: none;
+    overflow: visible;
+}
+.theme-panel:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+}
+.theme-panel.edit-mode {
+    border: 2px dashed rgba(255,255,255,0.4);
     resize: both;
     overflow: auto;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-}
-.theme-switcher:focus-within {
-    border-color: var(--accent-color);
 }
 
-.theme-switcher input {
-    background: rgba(255,255,255,0.9);
-    border: none;
-    padding: 10px 15px;
-    border-radius: 10px;
-    color: #111;
-    font-family: var(--base-font);
-    font-size: 1rem;
-    font-weight: 500;
-    outline: none;
-    width: 180px;
-}
-.theme-switcher input::placeholder { color: #666; }
-
-.cta-btn {
-    background: var(--accent-color);
-    border: none;
-    padding: 10px 18px;
-    border-radius: 10px;
-    color: var(--bg-color);
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
     font-weight: 700;
-    font-size: 1rem;
-    font-family: var(--base-font);
+    letter-spacing: 1px;
+    color: var(--accent-color);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    opacity: 0.95;
+}
+.panel-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.panel-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--primary-text);
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: var(--base-font);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.2s ease;
+}
+.panel-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+.panel-btn:active {
+    transform: scale(0.96);
+}
+.upload-btn {
+    flex: 1;
+    background: var(--accent-color);
+    color: #111;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    justify-content: center;
+}
+.upload-btn:hover {
+    filter: brightness(1.15);
+    background: var(--accent-color);
+    color: #000;
+}
+.icon-btn {
+    padding: 8px 12px;
+}
+.danger-btn:hover {
+    background: rgba(239, 83, 80, 0.35);
+    border-color: rgba(239, 83, 80, 0.6);
+    color: #ff8a80;
+}
+
+/* Palette Chips Container */
+.palette-chips-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+.palette-chip {
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px;
+    padding: 6px 6px;
+    color: var(--primary-text);
+    font-size: 0.72rem;
+    font-family: var(--base-font);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.palette-chip:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+.palette-chip.active {
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.08);
+}
+.chip-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 4px rgba(0,0,0,0.4);
+}
+
+/* Custom Colors Row */
+.custom-colors-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.custom-colors-row label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+}
+.custom-colors-row input[type="color"] {
+    -webkit-appearance: none;
+    border: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: transparent;
+    padding: 0;
+}
+.custom-colors-row input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+.custom-colors-row input[type="color"]::-webkit-color-swatch {
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 50%;
+}
+.search-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.search-wrap input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 5px 8px;
+    font-size: 0.75rem;
+    color: #fff;
+    font-family: var(--base-font);
+    outline: none;
+}
+.search-wrap input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+.search-wrap button {
+    background: transparent;
+    border: none;
+    color: var(--accent-color);
+    padding: 5px 8px;
+    cursor: pointer;
+}
+.drop-hint {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+    margin-top: -2px;
 }
