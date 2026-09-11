@@ -13,87 +13,84 @@
     <div class="dashboard-container">
         
         <!-- System Widget (Alarm & Battery) -->
-        <div class="widget drag-widget" style="top: 40px; left: 40px; width: 180px;">
+        <div class="widget drag-widget" style="top: 50px; left: 50px; width: 150px; height: 90px; border-radius: 18px;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
             <div class="widget-row">
                 <div class="small-widget interactive-btn" id="alarm-widget" title="Set alarm">
                     <i class="fa-solid fa-bell"></i>
-                    <span id="alarm-time">Off</span>
+                    <span id="alarm-time" style="font-size: 0.9rem;">off</span>
                 </div>
                 <div class="small-widget" id="battery-widget">
-                    <i class="fa-solid fa-battery-half" id="battery-icon"></i>
-                    <span id="battery-level">--%</span>
+                    <i class="fa-solid fa-battery-three-quarters" id="battery-icon"></i>
+                    <span id="battery-level" style="font-size: 0.9rem;">62%</span>
                 </div>
             </div>
         </div>
 
         <!-- Integrated Weather & Humidity Widget -->
-        <div class="widget drag-widget weather-widget" style="top: 150px; left: 40px; width: 180px;" id="weather-container">
+        <div class="widget drag-widget weather-widget" style="top: 160px; left: 50px; width: 150px; height: 160px; border-radius: 18px;" id="weather-container">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
-            <div class="weather-header">
-                <div class="weather-temp" id="weather-temp">--&deg;</div>
-                <div class="weather-emoji" id="weather-emoji">☁️</div>
+            <div class="weather-header" style="align-items: flex-start;">
+                <div class="weather-temp" id="weather-temp" style="font-size: 2.5rem; line-height: 1;">35&deg;</div>
+                <div class="weather-emoji" id="weather-emoji" style="font-size: 2rem;">⛅</div>
             </div>
-            <div class="weather-desc" id="weather-desc">Fetching...</div>
-            <div class="weather-details">
-                <span><i class="fa-solid fa-droplet"></i> <span id="humidity-level">--%</span></span>
+            <div class="weather-desc" id="weather-desc" style="font-size: 0.8rem; margin-top: 5px;">Partly Cloudy</div>
+            <div class="weather-details" style="font-size: 0.75rem; color: #add8e6; margin-top: 0px;">
+                <span><i class="fa-solid fa-droplet"></i> <span id="humidity-level">66%</span></span>
             </div>
-            <div class="weather-loc" id="weather-loc">Locating...</div>
-        </div>
-
-        <!-- Character Text -->
-        <div class="floating-text-container drag-widget" style="top: 360px; left: 40px; width: 350px;">
-            <span class="close-btn" onclick="this.parentElement.remove()" style="color: white; text-shadow: 0 0 5px black; right: 0;">&times;</span>
-            <svg viewBox="0 0 400 150" class="curved-svg">
-                <path id="curve" d="M 20,130 Q 200,10 380,130" fill="transparent"></path>
-                <text>
-                    <textPath href="#curve" startOffset="50%" text-anchor="middle" id="character-name-display">
-                        Buttercup
-                    </textPath>
-                </text>
-            </svg>
+            <div class="weather-loc" id="weather-loc" style="font-size: 0.8rem; padding-top: 8px; border: none; font-weight: 600;">Lahore</div>
         </div>
 
         <!-- Calendar Widget -->
-        <div class="widget drag-widget calendar-widget" style="top: 500px; left: 40px; width: 180px;">
+        <div class="widget drag-widget calendar-widget" style="top: 340px; left: 50px; width: 150px; height: 170px; border-radius: 18px;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
-            <div class="calendar-header" id="calendar-month">DEC</div>
-            <div class="calendar-grid-header">
+            <div class="calendar-header" id="calendar-month" style="font-size: 0.85rem; font-weight: 700;">SEP</div>
+            <div class="calendar-grid-header" style="font-size: 0.7rem;">
                 <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
             </div>
-            <div class="calendar-grid" id="calendar-grid"></div>
+            <div class="calendar-grid" id="calendar-grid" style="font-size: 0.7rem;"></div>
         </div>
 
         <!-- Reminders / Todo Widget -->
-        <div class="widget drag-widget todo-widget" style="top: 660px; left: 40px; width: 220px; height: 180px;">
+        <div class="widget drag-widget todo-widget" style="top: 530px; left: 50px; width: 150px; height: 160px; border-radius: 18px; position: relative;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
             <div id="todo-list-container"></div>
-            <div class="add-todo-container">
-                <input type="text" id="todo-input" placeholder="Type a reminder...">
-                <button id="add-todo-btn" class="interactive-btn"><i class="fa-solid fa-plus"></i></button>
+            <div class="add-todo-container" style="position: absolute; bottom: 15px; left: 15px; right: 15px; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 6px 12px;">
+                <input type="text" id="todo-input" placeholder="Type a reminder..." style="font-size: 0.8rem; text-align: left;">
+            </div>
+        </div>
+
+        <!-- Inverted-U Character Arch Frame -->
+        <div class="character-arch-frame drag-widget" style="bottom: 0; left: 50%; transform: translateX(-50%); width: 280px; height: 380px;">
+            <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
+            <div class="arch-inner">
+                <img id="character-arch-img" src="" alt="" style="display: none;">
+                <div id="character-arch-fallback" class="arch-placeholder">
+                    <span id="character-arch-name">Buttercup</span>
+                </div>
             </div>
         </div>
 
         <!-- Date Widget -->
-        <div class="drag-widget date-container" style="top: 40px; right: 40px; width: 250px;">
+        <div class="drag-widget date-container" style="top: 50px; right: 50px; width: 450px; text-align: right;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
-            <div class="date-display" id="date-display">Mon, December 1</div>
+            <div class="date-display" id="date-display" style="font-size: 3rem;">Fri, September 11</div>
         </div>
 
         <!-- Time Widget -->
-        <div class="drag-widget time-container" style="top: 150px; right: 40px; width: 280px;">
+        <div class="drag-widget time-container" style="top: 105px; right: 50px; width: 450px; text-align: right;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
-            <div class="time-display">
-                <span id="time-display">4:56</span>
-                <span id="ampm-display">PM</span>
+            <div class="time-display" style="justify-content: flex-end; align-items: flex-end;">
+                <span id="time-display" style="font-size: 4.5rem;">6:46</span>
+                <span id="ampm-display" style="font-size: 1.5rem; margin-bottom: 12px; margin-left: 5px;">PM</span>
             </div>
         </div>
 
         <!-- Theme Switcher -->
-        <div class="theme-switcher drag-widget" style="bottom: 40px; right: 40px;">
-            <span class="close-btn" onclick="this.parentElement.remove()" style="right: -10px; top: -10px;">&times;</span>
-            <input type="text" id="theme-input" placeholder="Type character name...">
-            <button onclick="generateAITheme()" class="interactive-btn cta-btn">Apply Theme</button>
+        <div class="theme-switcher drag-widget" style="bottom: 50px; right: 50px; padding: 10px 15px; border-radius: 20px;">
+            <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
+            <input type="text" id="theme-input" placeholder="Character Name..." style="width: 140px; padding: 8px 12px; font-size: 0.9rem; border-radius: 10px;">
+            <button onclick="generateAITheme()" class="interactive-btn cta-btn" style="padding: 8px 15px; font-size: 0.85rem; border-radius: 10px;">APPLY THEME</button>
         </div>
 
     </div>

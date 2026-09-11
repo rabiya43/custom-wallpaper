@@ -1,8 +1,25 @@
-// --- Draggable, Resizable, & Magnetic Snapping Widgets ---
+// --- Draggable, Resizable, & Edit Mode ---
+document.addEventListener('dblclick', (e) => {
+    const widget = e.target.closest('.drag-widget');
+    if (widget) {
+        document.querySelectorAll('.drag-widget').forEach(w => w.classList.remove('edit-mode'));
+        widget.classList.add('edit-mode');
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.drag-widget') && !e.target.closest('.close-btn')) {
+        document.querySelectorAll('.drag-widget').forEach(w => w.classList.remove('edit-mode'));
+    }
+});
+
 function makeDraggable(elmnt) {
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     
     elmnt.onmousedown = function(e) {
+        // ONLY allow dragging if in edit mode
+        if (!elmnt.classList.contains('edit-mode')) return;
+        
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('.interactive-btn') || e.target.closest('.todo-item') || e.target.closest('.close-btn')) {
             return;
         }
@@ -73,61 +90,55 @@ document.querySelectorAll('.drag-widget').forEach(makeDraggable);
 
 // --- 100% RELIABLE NO-KEY CHARACTER THEMING (Wikipedia Method) ---
 
+function applyThemeData(displayName, theme, imageUrl) {
+    const fontName = theme.font || 'Chewy';
+    document.getElementById('dynamic-font').href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}&display=swap`;
+
+    const root = document.documentElement;
+    root.style.setProperty('--bg-color', theme.bg);
+    root.style.setProperty('--widget-bg', theme.widgetBg);
+    root.style.setProperty('--accent-color', theme.accent);
+    root.style.setProperty('--glow-color', theme.glow);
+    root.style.setProperty('--primary-text', theme.text);
+    root.style.setProperty('--char-font', `'${fontName}', sans-serif`);
+
+    document.body.style.background = theme.bg;
+
+    // Update Inverted-U Arch Frame
+    const archImg = document.getElementById('character-arch-img');
+    const archFallback = document.getElementById('character-arch-fallback');
+    const archName = document.getElementById('character-arch-name');
+
+    if (archName) archName.textContent = displayName;
+
+    if (imageUrl && archImg) {
+        archImg.src = imageUrl;
+        archImg.style.display = 'block';
+        if (archFallback) archFallback.style.display = 'none';
+    } else {
+        if (archImg) archImg.style.display = 'none';
+        if (archFallback) archFallback.style.display = 'flex';
+    }
+}
+
 async function generateAITheme() {
     const input = document.getElementById('theme-input').value.trim();
     if (!input) return;
 
     const btn = document.querySelector('.theme-switcher button');
     const originalText = btn.innerText;
-    btn.innerText = "Analyzing...";
-    document.getElementById('character-name-display').textContent = "Loading...";
+    btn.innerText = "Fetching...";
 
     try {
-        let wikiText = input;
-        try {
-            const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(input)}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.extract) wikiText += data.extract;
-            }
-        } catch(e) {}
-
-        let hash = 0;
-        for (let i = 0; i < wikiText.length; i++) {
-            hash = wikiText.charCodeAt(i) + ((hash << 5) - hash);
+        const res = await fetch(`http://localhost:5000/api/theme?name=${encodeURIComponent(input)}`);
+        if (res.ok) {
+            const data = await res.json();
+            const displayName = input.charAt(0).toUpperCase() + input.slice(1);
+            applyThemeData(displayName, data.colors, data.image);
+            localStorage.setItem('dashboard-theme-data', JSON.stringify({name: displayName, theme: data.colors, image: data.image}));
         }
-        
-        const h = Math.abs(hash) % 360;
-
-        const theme = {
-            bg: `hsl(${h}, 35%, 45%)`,
-            widgetBg: `hsla(${h}, 50%, 20%, 0.5)`,
-            accent: `hsl(${(h + 30) % 360}, 80%, 75%)`,
-            glow: `hsl(${(h + 15) % 360}, 90%, 70%)`,
-            text: `#F9FDF0`
-        };
-
-        const fonts = ['Chewy', 'Bangers', 'Pacifico', 'Righteous', 'Lobster', 'Carter One', 'Alfa Slab One', 'Sigmar One'];
-        const fontName = fonts[Math.abs(hash) % fonts.length];
-        theme.font = fontName;
-
-        document.getElementById('dynamic-font').href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}&display=swap`;
-
-        const root = document.documentElement;
-        root.style.setProperty('--bg-color', theme.bg);
-        root.style.setProperty('--widget-bg', theme.widgetBg);
-        root.style.setProperty('--accent-color', theme.accent);
-        root.style.setProperty('--glow-color', theme.glow);
-        root.style.setProperty('--primary-text', theme.text);
-        root.style.setProperty('--char-font', `'${fontName}', sans-serif`);
-
-        const displayName = input.charAt(0).toUpperCase() + input.slice(1);
-        document.getElementById('character-name-display').textContent = displayName;
-        
-        localStorage.setItem('dashboard-theme-data', JSON.stringify({name: displayName, theme: theme}));
-
     } catch (err) {
-        document.getElementById('character-name-display').textContent = "Error";
+        console.error("Local API offline:", err);
     } finally {
         btn.innerText = originalText;
     }
@@ -138,16 +149,7 @@ if (savedThemeData) {
     try {
         const data = JSON.parse(savedThemeData);
         document.getElementById('theme-input').value = data.name;
-        document.getElementById('character-name-display').textContent = data.name;
-        const fontName = data.theme.font;
-        document.getElementById('dynamic-font').href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}&display=swap`;
-        const root = document.documentElement;
-        root.style.setProperty('--bg-color', data.theme.bg);
-        root.style.setProperty('--widget-bg', data.theme.widgetBg);
-        root.style.setProperty('--accent-color', data.theme.accent);
-        root.style.setProperty('--glow-color', data.theme.glow);
-        root.style.setProperty('--primary-text', data.theme.text);
-        root.style.setProperty('--char-font', `'${fontName}', sans-serif`);
+        applyThemeData(data.name, data.theme, data.image);
     } catch(e) {}
 }
 
@@ -215,7 +217,7 @@ async function updateBattery() {
 }
 updateBattery();
 
-// --- Todo List Logic ---
+// --- Todo List Logic & Python Backend Sync ---
 const todoInput = document.getElementById('todo-input');
 const todoListContainer = document.getElementById('todo-list-container');
 const addTodoBtn = document.getElementById('add-todo-btn');
@@ -223,6 +225,14 @@ let reminders = JSON.parse(localStorage.getItem('buttercup-reminders')) || [];
 
 function saveAndRenderReminders() {
     localStorage.setItem('buttercup-reminders', JSON.stringify(reminders));
+    
+    // Sync to python backend in background if running
+    fetch('http://localhost:5000/api/reminders/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reminders)
+    }).catch(e => {});
+
     todoListContainer.innerHTML = '';
     reminders.forEach((r, i) => {
         const div = document.createElement('div'); div.className = 'todo-item' + (r.checked ? ' checked' : '');
@@ -245,6 +255,32 @@ function addTodo() {
 todoInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTodo(); });
 addTodoBtn.addEventListener('click', addTodo);
 saveAndRenderReminders();
+
+// Python Calendar Integration
+async function syncCalendarAndReminders() {
+    try {
+        // Fetch calendar events
+        const eventsResponse = await fetch('http://localhost:5000/api/calendar/events');
+        const events = await eventsResponse.json();
+        
+        // Example: update calendar widget with events (basic alert dot logic could go here)
+        // console.log("Calendar events:", events);
+
+        // Fetch reminders
+        const remindersResponse = await fetch('http://localhost:5000/api/reminders');
+        const remoteReminders = await remindersResponse.json();
+        if (remoteReminders && remoteReminders.length > 0 && JSON.stringify(reminders) !== JSON.stringify(remoteReminders)) {
+            reminders = remoteReminders;
+            localStorage.setItem('buttercup-reminders', JSON.stringify(reminders));
+            saveAndRenderReminders();
+        }
+    } catch (error) {
+        console.log('Python local sync server not detected. Running offline.');
+    }
+    // Sync every 5 minutes
+    setTimeout(syncCalendarAndReminders, 300000);
+}
+syncCalendarAndReminders();
 
 // --- Integrated Weather Logic with Condition Mapping ---
 const weatherCodeMap = {

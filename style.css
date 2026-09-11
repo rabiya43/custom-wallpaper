@@ -60,8 +60,18 @@ body {
     color: #FFF;
     transform: scale(1.1);
 }
-.drag-widget:hover .close-btn {
+.drag-widget.edit-mode .close-btn {
     display: block;
+    background: #dc3545;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    text-align: center;
+    line-height: 28px;
+    color: white;
+    top: -5px;
+    right: -5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
 /* Micro-Interactions */
@@ -76,20 +86,92 @@ body {
     transform: scale(0.92);
 }
 
-/* Resizable Widgets */
+/* Inverted-U Arch Frame for Character */
+.character-arch-frame {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    height: 380px;
+    background: var(--widget-bg);
+    border-radius: 140px 140px 0 0; /* Inverted U shape archway */
+    border: 3px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25), inset 0 0 20px rgba(255,255,255,0.08);
+    backdrop-filter: blur(16px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    transition: background 0.4s ease, border-color 0.4s ease;
+}
+
+.character-arch-frame.edit-mode {
+    resize: both;
+    overflow: hidden;
+    border: 2px dashed rgba(255,255,255,0.5);
+}
+
+.arch-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+}
+
+.arch-inner img {
+    max-width: 90%;
+    max-height: 95%;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35));
+    transition: transform 0.3s ease;
+}
+.arch-inner img:hover {
+    transform: scale(1.05);
+}
+
+.arch-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    font-family: var(--char-font);
+    font-size: 3rem;
+    color: white;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
 .widget {
     background: var(--widget-bg);
-    border: 1px solid var(--widget-border);
-    border-radius: 20px;
+    border: none;
+    border-radius: 18px;
     padding: 15px;
     backdrop-filter: blur(12px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     transition: background 0.4s ease, border-color 0.4s ease;
-    
-    resize: both;
-    overflow: auto;
+    /* Edit Mode Constraints - Clean by Default */
+    resize: none;
+    overflow: visible;
     min-width: 120px;
     min-height: 80px;
+}
+.widget.edit-mode {
+    resize: both;
+    overflow: auto;
+    border: 2px dashed rgba(255,255,255,0.4);
+    box-shadow: 0 0 15px rgba(255,255,255,0.2);
+}
+.drag-widget.edit-mode::before {
+    content: '≡';
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    font-size: 20px;
+    color: rgba(255,255,255,0.8);
+    cursor: grab;
+    z-index: 10;
 }
 .widget::-webkit-scrollbar { width: 0px; }
 
@@ -164,11 +246,16 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    resize: both;
-    overflow: hidden; 
+    resize: none;
+    overflow: visible; 
     padding: 10px;
     min-width: 200px;
     min-height: 100px;
+}
+.floating-text-container.edit-mode {
+    resize: both;
+    overflow: hidden;
+    border: 2px dashed var(--accent-color);
 }
 .curved-svg {
     width: 100%;
@@ -318,17 +405,22 @@ body {
 
 /* Separate Date and Time Panels */
 .date-container, .time-container {
-    resize: both;
-    overflow: hidden; 
+    resize: none;
+    overflow: visible; 
     padding: 15px;
     container-type: inline-size;
     text-align: right;
 }
+.date-container.edit-mode, .time-container.edit-mode {
+    resize: both;
+    overflow: hidden;
+    border: 2px dashed var(--accent-color);
+}
 
 .date-display, .time-display {
-    font-family: var(--time-font);
-    color: var(--primary-text);
-    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    font-family: var(--char-font);
+    color: white;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.15);
     line-height: 1;
 }
 
