@@ -88,27 +88,89 @@ function makeDraggable(elmnt) {
 
 document.querySelectorAll('.drag-widget').forEach(makeDraggable);
 
-// --- 100% RELIABLE NO-KEY CHARACTER THEMING (Wikipedia Method) ---
+// --- 100% CLIENT-SIDE CHARACTER THEMING (No Python Required for Images) ---
 
-function applyThemeData(displayName, theme, imageUrl) {
-    const fontName = theme.font || 'Chewy';
-    document.getElementById('dynamic-font').href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}&display=swap`;
+// Dual-gradient palettes keyed by character name fragments
+const CHARACTER_PALETTES = {
+    'buttercup': {bg1:'#2D5A46', bg2:'#509F8C', widgetBg:'rgba(0,0,0,0.25)', accent:'#A5C271', glow:'#E2F3B9', text:'#FFF'},
+    'blossom':   {bg1:'#D87093', bg2:'#FF7F50', widgetBg:'rgba(216,112,147,0.65)', accent:'#FFB6C1', glow:'#FFE4E1', text:'#FFF'},
+    'bubbles':   {bg1:'#4682B4', bg2:'#FFD700', widgetBg:'rgba(70,130,180,0.65)', accent:'#87CEEB', glow:'#E0FFFF', text:'#FFF'},
+    'cherry':    {bg1:'#6B2035', bg2:'#A020F0', widgetBg:'rgba(107,32,53,0.65)', accent:'#D45D7F', glow:'#FF8DA1', text:'#FFF'},
+    'pikachu':   {bg1:'#E6AF2E', bg2:'#D62828', widgetBg:'rgba(230,175,46,0.65)', accent:'#FFE169', glow:'#FFD166', text:'#FFF'},
+    'cinderella':{bg1:'#7098DA', bg2:'#E5ECF4', widgetBg:'rgba(112,152,218,0.65)', accent:'#A3C4F3', glow:'#E0FFFF', text:'#FFF'},
+    'barbie':    {bg1:'#E05697', bg2:'#9B4F96', widgetBg:'rgba(224,86,151,0.65)', accent:'#FF85A1', glow:'#FFC2D1', text:'#FFF'},
+    'batman':    {bg1:'#1A1A24', bg2:'#4A4E69', widgetBg:'rgba(26,26,36,0.75)', accent:'#F4D03F', glow:'#F9E79F', text:'#FFF'},
+    'snow white':{bg1:'#2B3A67', bg2:'#E6AF2E', widgetBg:'rgba(43,58,103,0.65)', accent:'#FFD166', glow:'#E03616', text:'#FFF'},
+    'elsa':      {bg1:'#3B82C4', bg2:'#E0F0FF', widgetBg:'rgba(59,130,196,0.65)', accent:'#87CEFA', glow:'#F0F8FF', text:'#FFF'},
+    'naruto':    {bg1:'#E97520', bg2:'#1A2A5E', widgetBg:'rgba(233,117,32,0.65)', accent:'#FFB347', glow:'#FFE0B2', text:'#FFF'},
+};
 
+function getColorPalette(userInput) {
+    const lower = userInput.toLowerCase();
+    for (const [key, palette] of Object.entries(CHARACTER_PALETTES)) {
+        if (lower.includes(key)) return palette;
+    }
+    // Deterministic dual-gradient from name hash
+    const h1 = [...userInput].reduce((a,c) => a + c.charCodeAt(0), 0) % 360;
+    const h2 = (h1 + 45) % 360;
+    return {
+        bg1: `hsl(${h1}, 45%, 40%)`, bg2: `hsl(${h2}, 55%, 30%)`,
+        widgetBg: `hsla(${h1}, 45%, 20%, 0.6)`,
+        accent: `hsl(${(h1+25)%360}, 85%, 75%)`,
+        glow: `hsl(${(h1+15)%360}, 90%, 80%)`,
+        text: '#FFF'
+    };
+}
+
+/**
+ * Searches Wikipedia for the user's EXACT typed query and returns the
+ * best-matching article's thumbnail image URL. Pure client-side, no proxy.
+ * Wikipedia images (upload.wikimedia.org) are freely hotlinkable.
+ */
+async function fetchCharacterImage(userQuery) {
+    try {
+        // Step 1: Use Wikipedia Search API to find the best article for the user's keywords
+        const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=search&srsearch=${encodeURIComponent(userQuery)}&srlimit=5`;
+        const searchRes = await fetch(searchUrl);
+        const searchData = await searchRes.json();
+        const results = searchData?.query?.search || [];
+
+        // Step 2: Try each search result until we find one with an image
+        for (const result of results) {
+            const title = result.title;
+            const imgUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=pageimages&titles=${encodeURIComponent(title)}&pithumbsize=600&redirects=1`;
+            const imgRes = await fetch(imgUrl);
+            const imgData = await imgRes.json();
+            const pages = imgData?.query?.pages || {};
+            for (const pid in pages) {
+                if (pid !== '-1' && pages[pid].thumbnail?.source) {
+                    return pages[pid].thumbnail.source;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Wikipedia image fetch failed:', e);
+    }
+    return null;
+}
+
+function applyThemeColors(theme) {
     const root = document.documentElement;
-    root.style.setProperty('--bg-color', theme.bg);
-    root.style.setProperty('--widget-bg', theme.widgetBg);
-    root.style.setProperty('--accent-color', theme.accent);
-    root.style.setProperty('--glow-color', theme.glow);
-    root.style.setProperty('--primary-text', theme.text);
-    root.style.setProperty('--char-font', `'${fontName}', sans-serif`);
+    const bg1 = theme.bg1 || theme.bg || '#509F8C';
+    const bg2 = theme.bg2 || theme.bg || '#2D5A46';
+    root.style.setProperty('--bg-color-1', bg1);
+    root.style.setProperty('--bg-color-2', bg2);
+    root.style.setProperty('--widget-bg', theme.widgetBg || 'rgba(0,0,0,0.2)');
+    root.style.setProperty('--accent-color', theme.accent || '#A5C271');
+    root.style.setProperty('--glow-color', theme.glow || '#E2F3B9');
+    root.style.setProperty('--primary-text', theme.text || '#FFF');
+    document.body.style.background = `linear-gradient(135deg, ${bg1}, ${bg2})`;
+}
 
-    document.body.style.background = theme.bg;
-
-    // Update Inverted-U Arch Frame
+function applyArchImage(imageUrl, displayName) {
     const archImg = document.getElementById('character-arch-img');
     const archFallback = document.getElementById('character-arch-fallback');
     const archName = document.getElementById('character-arch-name');
-
     if (archName) archName.textContent = displayName;
 
     if (imageUrl && archImg) {
@@ -126,30 +188,33 @@ async function generateAITheme() {
     if (!input) return;
 
     const btn = document.querySelector('.theme-switcher button');
-    const originalText = btn.innerText;
     btn.innerText = "Fetching...";
 
-    try {
-        const res = await fetch(`http://localhost:5000/api/theme?name=${encodeURIComponent(input)}`);
-        if (res.ok) {
-            const data = await res.json();
-            const displayName = input.charAt(0).toUpperCase() + input.slice(1);
-            applyThemeData(displayName, data.colors, data.image);
-            localStorage.setItem('dashboard-theme-data', JSON.stringify({name: displayName, theme: data.colors, image: data.image}));
-        }
-    } catch (err) {
-        console.error("Local API offline:", err);
-    } finally {
-        btn.innerText = originalText;
-    }
+    // 1. Apply colors immediately (instant, no network)
+    const palette = getColorPalette(input);
+    applyThemeColors(palette);
+
+    // 2. Fetch image from Wikipedia using user's exact keywords (async)
+    const displayName = input;
+    const imageUrl = await fetchCharacterImage(input);
+    applyArchImage(imageUrl, displayName);
+
+    // 3. Save to localStorage
+    localStorage.setItem('dashboard-theme-data', JSON.stringify({
+        name: displayName, theme: palette, image: imageUrl
+    }));
+
+    btn.innerText = "APPLY THEME";
 }
 
+// Restore saved theme on page load
 const savedThemeData = localStorage.getItem('dashboard-theme-data');
 if (savedThemeData) {
     try {
         const data = JSON.parse(savedThemeData);
         document.getElementById('theme-input').value = data.name;
-        applyThemeData(data.name, data.theme, data.image);
+        applyThemeColors(data.theme);
+        applyArchImage(data.image, data.name);
     } catch(e) {}
 }
 

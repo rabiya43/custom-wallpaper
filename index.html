@@ -10,6 +10,12 @@
     <link id="dynamic-font" href="https://fonts.googleapis.com/css2?family=Chewy&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Full-Screen Character Wallpaper Layer (behind everything) -->
+    <div id="character-wallpaper">
+        <img id="character-wallpaper-img" src="" alt="">
+        <div id="character-wallpaper-overlay"></div>
+    </div>
+
     <div class="dashboard-container">
         
         <!-- System Widget (Alarm & Battery) -->
@@ -42,7 +48,7 @@
         </div>
 
         <!-- Calendar Widget -->
-        <div class="widget drag-widget calendar-widget" style="top: 340px; left: 50px; width: 150px; height: 170px; border-radius: 18px;">
+        <div class="widget drag-widget calendar-widget" style="top: 340px; left: 50px; width: 170px; height: 170px; border-radius: 18px;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
             <div class="calendar-header" id="calendar-month" style="font-size: 0.85rem; font-weight: 700;">SEP</div>
             <div class="calendar-grid-header" style="font-size: 0.7rem;">
@@ -52,22 +58,11 @@
         </div>
 
         <!-- Reminders / Todo Widget -->
-        <div class="widget drag-widget todo-widget" style="top: 530px; left: 50px; width: 150px; height: 160px; border-radius: 18px; position: relative;">
+        <div class="widget drag-widget todo-widget" style="top: 530px; left: 50px; width: 170px; height: 160px; border-radius: 18px; position: relative;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
             <div id="todo-list-container"></div>
             <div class="add-todo-container" style="position: absolute; bottom: 15px; left: 15px; right: 15px; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 6px 12px;">
                 <input type="text" id="todo-input" placeholder="Type a reminder..." style="font-size: 0.8rem; text-align: left;">
-            </div>
-        </div>
-
-        <!-- Inverted-U Character Arch Frame -->
-        <div class="character-arch-frame drag-widget" style="bottom: 0; left: 50%; transform: translateX(-50%); width: 280px; height: 380px;">
-            <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
-            <div class="arch-inner">
-                <img id="character-arch-img" src="" alt="" style="display: none;">
-                <div id="character-arch-fallback" class="arch-placeholder">
-                    <span id="character-arch-name">Buttercup</span>
-                </div>
             </div>
         </div>
 
@@ -89,7 +84,7 @@
         <!-- Theme Switcher -->
         <div class="theme-switcher drag-widget" style="bottom: 50px; right: 50px; padding: 10px 15px; border-radius: 20px;">
             <span class="close-btn" onclick="this.parentElement.remove()">&times;</span>
-            <input type="text" id="theme-input" placeholder="Character Name..." style="width: 140px; padding: 8px 12px; font-size: 0.9rem; border-radius: 10px;">
+            <input type="text" id="theme-input" placeholder="e.g. Buttercup Powerpuff Girls" style="width: 220px; padding: 8px 12px; font-size: 0.85rem; border-radius: 10px;">
             <button onclick="generateAITheme()" class="interactive-btn cta-btn" style="padding: 8px 15px; font-size: 0.85rem; border-radius: 10px;">APPLY THEME</button>
         </div>
 
