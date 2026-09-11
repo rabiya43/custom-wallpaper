@@ -3,87 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buttercup Dashboard</title>
+    <title>AI Character Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Updated Fonts for better matching -->
-    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Inter:wght@400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+    <link id="dynamic-font" href="https://fonts.googleapis.com/css2?family=Chewy&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="dashboard-container">
-        <div class="main-content">
-            <!-- Left Panel: Widgets -->
-            <div class="left-panel">
-                
-                <!-- Alarm and Battery -->
-                <div class="widget-row">
-                    <div class="widget small-widget" id="alarm-widget" style="cursor: pointer;" title="Click to set alarm time">
-                        <i class="fa-solid fa-bell"></i>
-                        <span id="alarm-time">Off</span>
-                    </div>
-                    <div class="widget small-widget" id="battery-widget">
-                        <i class="fa-solid fa-battery-half" id="battery-icon"></i>
-                        <span id="battery-level">--%</span>
-                    </div>
+        <!-- Draggable Left Panel -->
+        <div class="left-panel" id="left-panel">
+            
+            <div class="widget-row">
+                <div class="widget small-widget" id="alarm-widget" style="cursor: pointer;" title="Set alarm">
+                    <i class="fa-solid fa-bell"></i>
+                    <span id="alarm-time">Off</span>
                 </div>
-                
-                <!-- Weather Widget -->
-                <div class="widget weather-widget">
-                    <div class="weather-icon">
-                        <i class="fa-solid fa-cloud-bolt" id="weather-icon-display"></i>
-                    </div>
-                    <div class="weather-temp" id="weather-temp">--&deg;</div>
-                    <div class="weather-desc" id="weather-desc">Fetching weather...</div>
-                    <div class="weather-loc" id="weather-loc">Locating...</div>
+                <div class="widget small-widget" id="battery-widget">
+                    <i class="fa-solid fa-battery-half" id="battery-icon"></i>
+                    <span id="battery-level">--%</span>
                 </div>
-                
-                <!-- Buttercup Text -->
-                <div class="widget buttercup-text-widget">
-                    <span class="glowing-text">Buttercup</span>
-                </div>
-                
-                <!-- Moon and Humidity -->
-                <div class="widget-row">
-                    <div class="widget small-widget moon-widget">
-                        <span style="font-size: 1.8rem;">🌙</span>
-                    </div>
-                    <div class="widget small-widget">
-                        <i class="fa-solid fa-droplet"></i>
-                        <span id="humidity-level">--%</span>
-                    </div>
-                </div>
-                
-                <!-- Calendar Widget -->
-                <div class="widget calendar-widget">
-                    <div class="calendar-header" id="calendar-month">DEC</div>
-                    <div class="calendar-grid-header">
-                        <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
-                    </div>
-                    <div class="calendar-grid" id="calendar-grid">
-                        <!-- Injected via JS -->
-                    </div>
-                </div>
-                
-                <!-- To-Do Widget (Reminders) -->
-                <div class="widget todo-widget">
-                    <div id="todo-list-container">
-                        <!-- Reminders will be injected here -->
-                    </div>
-                    <div class="todo-item add-todo-container">
-                        <input type="text" id="todo-input" placeholder="Add Reminders..." autocomplete="off">
-                    </div>
-                </div>
-
             </div>
             
-            <!-- Right Panel: Time and Date -->
-            <div class="right-panel">
-                <div class="datetime-container">
-                    <div class="date-display" id="date-display">Mon, December 1</div>
-                    <div class="time-display" id="time-display">15:56</div>
+            <div class="widget weather-widget">
+                <div class="weather-icon">
+                    <i class="fa-solid fa-cloud-bolt" id="weather-icon-display"></i>
+                </div>
+                <div class="weather-temp" id="weather-temp">--&deg;</div>
+                <div class="weather-desc" id="weather-desc">Fetching...</div>
+                <div class="weather-loc" id="weather-loc">Locating...</div>
+            </div>
+            
+            <!-- Curved, Floating Glittery Text -->
+            <div class="floating-text-container">
+                <svg viewBox="0 0 400 150" class="curved-svg">
+                    <path id="curve" d="M 20,130 Q 200,10 380,130" fill="transparent"></path>
+                    <text>
+                        <textPath href="#curve" startOffset="50%" text-anchor="middle" id="character-name-display">
+                            Buttercup
+                        </textPath>
+                    </text>
+                </svg>
+            </div>
+            
+            <div class="widget-row">
+                <div class="widget small-widget moon-widget" title="Moon Phase">
+                    <div class="moon-icon"></div>
+                </div>
+                <div class="widget small-widget">
+                    <i class="fa-solid fa-droplet"></i>
+                    <span id="humidity-level">--%</span>
                 </div>
             </div>
+            
+            <div class="widget calendar-widget">
+                <div class="calendar-header" id="calendar-month">DEC</div>
+                <div class="calendar-grid-header">
+                    <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+                </div>
+                <div class="calendar-grid" id="calendar-grid">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+            
+            <div class="widget todo-widget">
+                <div id="todo-list-container"></div>
+                <div class="todo-item add-todo-container">
+                    <input type="text" id="todo-input" placeholder="Add Reminders..." autocomplete="off">
+                </div>
+            </div>
+
         </div>
+        
+        <!-- Draggable Right Panel -->
+        <div class="right-panel" id="right-panel">
+            <div class="datetime-container">
+                <div class="date-display" id="date-display">Mon, December 1</div>
+                <div class="time-display" id="time-display">15:56</div>
+            </div>
+        </div>
+
+        <!-- AI Theme Switcher (NO API KEY REQUIRED!) -->
+        <div class="theme-switcher">
+            <input type="text" id="theme-input" placeholder="Character Name (e.g. Iron Man)">
+            <button onclick="generateAITheme()">Apply Character Theme</button>
+        </div>
+
     </div>
     <script src="script.js"></script>
 </body>
