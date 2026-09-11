@@ -1,13 +1,18 @@
-// --- Draggable Panels Logic ---
+// --- Draggable & Resizable Independent Widgets ---
 function makeDraggable(elmnt) {
     let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
     
     elmnt.onmousedown = function(e) {
-        // Prevent dragging if clicking inputs, buttons, or dragging the resize handle in the bottom right corner
-        const isResizeHandle = (e.clientX > elmnt.getBoundingClientRect().right - 20 && e.clientY > elmnt.getBoundingClientRect().bottom - 20);
-        if (isResizeHandle || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('.todo-item') || e.target.closest('#alarm-widget')) {
-            return; 
+        // Prevent dragging if interacting with inputs, buttons, tasks, or the close (X) button
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('.todo-item') || e.target.closest('#alarm-widget') || e.target.closest('.close-btn')) {
+            return;
         }
+        
+        // CRITICAL FIX: Prevent dragging when user clicks the bottom-right corner to RESIZE the widget.
+        const rect = elmnt.getBoundingClientRect();
+        const isResizeHandle = (e.clientX > rect.right - 25 && e.clientY > rect.bottom - 25);
+        if (isResizeHandle) return;
+
         dragMouseDown(e);
     };
 
@@ -28,12 +33,13 @@ function makeDraggable(elmnt) {
         elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
         elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
         elmnt.style.right = "auto";
+        elmnt.style.bottom = "auto";
     }
     function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
 }
 
-makeDraggable(document.getElementById('left-panel'));
-makeDraggable(document.getElementById('right-panel'));
+// Apply drag logic to all individual widgets
+document.querySelectorAll('.drag-widget').forEach(makeDraggable);
 
 
 // --- 100% RELIABLE NO-KEY CHARACTER THEMING (Wikipedia Method) ---
@@ -48,8 +54,6 @@ async function generateAITheme() {
     document.getElementById('character-name-display').textContent = "Loading...";
 
     try {
-        // We use the free Wikipedia API to fetch character descriptions.
-        // This acts as a reliable "Google" search that never breaks and needs no API keys.
         let wikiText = input;
         try {
             const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(input)}`);
@@ -57,17 +61,15 @@ async function generateAITheme() {
                 const data = await res.json();
                 if (data.extract) wikiText += data.extract;
             }
-        } catch(e) {} // It's fine if it fails, we still use the name
+        } catch(e) {}
 
-        // Deterministic Hashing: We turn the character's description into a unique, mathematical color palette!
         let hash = 0;
         for (let i = 0; i < wikiText.length; i++) {
             hash = wikiText.charCodeAt(i) + ((hash << 5) - hash);
         }
         
-        const h = Math.abs(hash) % 360; // Hue (0-360)
+        const h = Math.abs(hash) % 360;
 
-        // Generate beautiful HSL colors based on the character's unique hash
         const theme = {
             bg: `hsl(${h}, 35%, 45%)`,
             widgetBg: `hsla(${h}, 50%, 20%, 0.5)`,
@@ -76,15 +78,12 @@ async function generateAITheme() {
             text: `#F9FDF0`
         };
 
-        // Pick a font based on the hash
         const fonts = ['Chewy', 'Bangers', 'Pacifico', 'Righteous', 'Titan One', 'Lobster', 'Carter One', 'Alfa Slab One', 'Sigmar One'];
         const fontName = fonts[Math.abs(hash) % fonts.length];
         theme.font = fontName;
 
-        // Load the font
         document.getElementById('dynamic-font').href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}&display=swap`;
 
-        // Apply CSS Variables
         const root = document.documentElement;
         root.style.setProperty('--bg-color', theme.bg);
         root.style.setProperty('--widget-bg', theme.widgetBg);
@@ -93,32 +92,26 @@ async function generateAITheme() {
         root.style.setProperty('--primary-text', theme.text);
         root.style.setProperty('--char-font', `'${fontName}', sans-serif`);
 
-        // Update SVG Curved Text
         const displayName = input.charAt(0).toUpperCase() + input.slice(1);
         document.getElementById('character-name-display').textContent = displayName;
         
-        // Save
         localStorage.setItem('dashboard-theme-data', JSON.stringify({name: displayName, theme: theme}));
 
     } catch (err) {
-        console.error("Theme generation failed:", err);
         document.getElementById('character-name-display').textContent = "Error";
     } finally {
         btn.innerText = originalText;
     }
 }
 
-// Load saved theme on startup
 const savedThemeData = localStorage.getItem('dashboard-theme-data');
 if (savedThemeData) {
     try {
         const data = JSON.parse(savedThemeData);
         document.getElementById('theme-input').value = data.name;
         document.getElementById('character-name-display').textContent = data.name;
-        
         const fontName = data.theme.font;
         document.getElementById('dynamic-font').href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, '+')}&display=swap`;
-        
         const root = document.documentElement;
         root.style.setProperty('--bg-color', data.theme.bg);
         root.style.setProperty('--widget-bg', data.theme.widgetBg);
@@ -130,11 +123,21 @@ if (savedThemeData) {
 }
 
 
-// --- Basic Functionality (Time, Calendar, Weather, Reminders) ---
+// --- 12-Hour Format Time & Basic Functionality ---
 
 function updateTimeAndDate() {
     const now = new Date();
-    document.getElementById('time-display').innerText = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    // 12 Hour Format (4 PM instead of 16)
+    let hours = now.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 becomes 12
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    document.getElementById('time-display').innerText = `${hours}:${minutes}`;
+    document.getElementById('ampm-display').innerText = ampm;
+    
     document.getElementById('date-display').innerText = now.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' });
     setTimeout(updateTimeAndDate, (60 - now.getSeconds()) * 1000 - now.getMilliseconds());
 }

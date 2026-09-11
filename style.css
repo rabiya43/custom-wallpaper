@@ -23,7 +23,7 @@ body {
     height: 100vh;
     overflow: hidden;
     background-image: url('bg.png');
-    background-size: cover;
+    background-size: 100vw 100vh;
     background-position: center;
     background-repeat: no-repeat;
     transition: background-color 0.4s ease;
@@ -33,36 +33,34 @@ body {
     width: 100%;
     height: 100vh;
     position: relative;
-    padding: 30px;
 }
 
-/* Draggable & Resizable Panels */
-.left-panel {
+/* Independent Draggable Widgets */
+.drag-widget {
     position: absolute;
-    top: 5vw;
-    left: 5vw;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 250px; 
-    cursor: grab;
-    resize: horizontal; /* Makes the entire panel resizable! */
-    overflow: visible; 
-    padding-bottom: 20px;
-}
-
-.right-panel {
-    position: absolute;
-    top: 5vw;
-    right: 5vw;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
     cursor: grab;
 }
-
-.left-panel:active, .right-panel:active {
+.drag-widget:active {
     cursor: grabbing;
+}
+
+/* Close Button (X) */
+.close-btn {
+    position: absolute;
+    top: 5px;
+    right: 8px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--accent-color);
+    cursor: pointer;
+    display: none;
+    z-index: 10;
+}
+.close-btn:hover {
+    color: #FFF;
+}
+.drag-widget:hover .close-btn {
+    display: block;
 }
 
 /* Resizable Widgets */
@@ -75,18 +73,19 @@ body {
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     transition: background 0.4s ease, border-color 0.4s ease;
     
-    /* This makes every individual widget editable in size! */
+    /* Truly Resizable */
     resize: both;
     overflow: auto;
-    min-height: 50px;
+    min-width: 120px;
+    min-height: 80px;
 }
-/* Hide scrollbar for standard widgets */
 .widget::-webkit-scrollbar { width: 0px; }
 
 .widget-row {
     display: flex;
     gap: 10px;
     justify-content: space-between;
+    height: 100%;
 }
 
 .small-widget {
@@ -99,7 +98,6 @@ body {
     font-size: 1rem;
     font-weight: 600;
 }
-
 .small-widget i {
     font-size: 1.6rem;
     color: var(--accent-color);
@@ -149,21 +147,22 @@ body {
 /* Curved & Glittery Floating Text */
 .floating-text-container {
     text-align: center;
-    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Resizable container */
+    
+    /* Make Resizable */
     resize: both;
-    overflow: visible;
+    overflow: hidden; /* Changed from visible to allow resizing */
+    padding: 10px;
+    min-width: 200px;
+    min-height: 100px;
 }
-
 .curved-svg {
     width: 100%;
-    height: auto;
+    height: 100%;
     overflow: visible;
 }
-
 .curved-svg text {
     font-family: var(--char-font);
     font-size: 4rem; 
@@ -210,7 +209,6 @@ body {
 .todo-widget {
     padding: 15px;
     border-radius: 20px;
-    max-height: 200px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -265,29 +263,56 @@ body {
 .datetime-container {
     text-align: right;
     text-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    
+    /* Make Resizable */
+    resize: both;
+    overflow: hidden; /* Changed from visible to allow resizing */
+    padding: 15px;
+    min-width: 250px;
+    
+    /* Add Floating Hover Effect */
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s ease;
+}
+
+.datetime-container:hover {
+    transform: translateY(-15px); /* Floats up slightly */
+    filter: drop-shadow(0 15px 25px rgba(0,0,0,0.4));
 }
 
 .date-display {
     font-size: 2rem;
     font-weight: 500;
-    margin-bottom: -10px;
+    margin-bottom: -15px;
     color: #F9FDF0;
 }
 
 .time-display {
     font-family: var(--time-font);
-    font-size: 11rem;
+    font-size: 7rem; /* Significantly reduced size */
     font-weight: 600;
     color: var(--primary-text);
     line-height: 1;
     letter-spacing: -1px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    
+    /* Container Query scaling for resize */
+    container-type: inline-size;
+}
+
+/* Allow text to scale if container resizes */
+.time-display span {
+    font-size: max(5rem, 20cqw);
+}
+.time-display #ampm-display {
+    font-size: max(1.5rem, 5cqw);
+    margin-left: 10px;
+    margin-bottom: 5px;
 }
 
 /* AI Theme Switcher */
 .theme-switcher {
-    position: absolute;
-    bottom: 30px;
-    right: 30px;
     background: var(--widget-bg);
     padding: 15px 20px;
     border-radius: 20px;
@@ -296,6 +321,8 @@ body {
     gap: 10px;
     align-items: center;
     border: 1px solid var(--widget-border);
+    resize: both;
+    overflow: auto;
 }
 
 .theme-switcher input {
@@ -307,7 +334,7 @@ body {
     font-family: var(--base-font);
     font-size: 1rem;
     outline: none;
-    width: 200px;
+    width: 180px;
 }
 
 .theme-switcher button {
