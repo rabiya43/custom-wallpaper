@@ -1,0 +1,263 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #6C8E4E;
+    color: #E6F0D8;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    /* Fixed background image issue by removing gradient */
+    background-image: url('bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.dashboard-container {
+    width: 100%;
+    max-width: 1200px;
+    height: 100vh;
+    position: relative;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    display: flex;
+    justify-content: space-between;
+    height: 100%;
+    position: relative;
+}
+
+/* Left Panel */
+.left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 170px; /* Slightly wider for the reminders */
+}
+
+.widget {
+    background: rgba(70, 95, 45, 0.6);
+    border-radius: 20px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.widget-row {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.small-widget {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.small-widget i {
+    font-size: 1.2rem;
+    color: #D4E5AA;
+}
+
+.moon-widget {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0px 0px 5px rgba(255,255,255,0.3));
+}
+
+/* Weather */
+.weather-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.weather-icon i {
+    font-size: 1.5rem;
+    color: #FFF;
+}
+.weather-temp {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #FFF;
+}
+.weather-desc {
+    font-size: 0.7rem;
+    line-height: 1.2;
+    color: #C0D695;
+    text-transform: capitalize;
+}
+.weather-loc {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 5px;
+}
+
+/* Text Widget */
+.buttercup-text-widget {
+    background: transparent;
+    box-shadow: none;
+    text-align: center;
+    padding: 5px;
+}
+.glowing-text {
+    font-family: 'Chewy', cursive;
+    font-size: 2rem;
+    color: #E2F3B9;
+    text-shadow: 0 0 10px rgba(226, 243, 185, 0.8), 0 0 20px rgba(226, 243, 185, 0.5);
+    letter-spacing: 2px;
+}
+
+/* Calendar */
+.calendar-widget {
+    font-size: 0.7rem;
+    padding: 15px 10px;
+}
+.calendar-header {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+.calendar-grid-header, .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    gap: 2px;
+}
+.calendar-grid-header {
+    color: #A5C271;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+.calendar-grid span {
+    padding: 2px 0;
+}
+.calendar-grid .active-day {
+    background: #E6F0D8;
+    color: #465F2D;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+/* To-Do Widget */
+.todo-widget {
+    padding: 12px 15px;
+    border-radius: 25px;
+    max-height: 150px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Scrollbar for todo list */
+.todo-widget::-webkit-scrollbar {
+    width: 4px;
+}
+.todo-widget::-webkit-scrollbar-thumb {
+    background: rgba(230, 240, 216, 0.3);
+    border-radius: 4px;
+}
+
+.todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.todo-item input[type="checkbox"] {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #A5C271;
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.todo-item input[type="checkbox"]:checked {
+    background-color: #A5C271;
+}
+.todo-item span.task-text {
+    color: #E6F0D8;
+    font-size: 0.85rem;
+    word-break: break-word;
+    cursor: pointer;
+}
+.todo-item.checked span.task-text {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+.todo-item .delete-btn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: #A5C271;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.todo-item .delete-btn:hover {
+    color: #FFF;
+}
+
+.add-todo-container {
+    margin-top: 5px;
+}
+.add-todo-container input[type="text"] {
+    background: transparent;
+    border: none;
+    color: #E6F0D8;
+    font-family: inherit;
+    font-size: 0.85rem;
+    outline: none;
+    width: 100%;
+}
+.add-todo-container input[type="text"]::placeholder {
+    color: #A5C271;
+}
+
+/* Right Panel */
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding-top: 30px;
+}
+
+.datetime-container {
+    text-align: right;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.date-display {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 500;
+    margin-bottom: -15px;
+    color: #F9FDF0;
+}
+
+.time-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 10rem;
+    color: #E8F5B8;
+    line-height: 1;
+    letter-spacing: 2px;
+}
