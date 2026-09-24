@@ -1,146 +1,106 @@
 # Live Wallpaper Dashboard
 
-A live desktop wallpaper for Windows. It sits behind your desktop icons and shows a clock, date, weather, calendar, reminders and an alarm on top of any image you like. Type a character, movie or show to find a wallpaper, or browse Google Images and right-click any picture to use it. The whole dashboard recolors to match.
+Turn your Windows desktop into a live dashboard. Your wallpaper shows the time, weather, your calendar, alarms and reminders, right behind your desktop icons, on top of any picture you like.
 
-## Install
+![The dashboard with the customize panel open](docs/editor.png)
 
-Download the latest `Live-Wallpaper-Dashboard-Setup-<version>.exe` from the [Releases](https://github.com/rabiya43/custom-wallpaper/releases) page and run it.
+## Download
 
-**Updates install themselves** (from version 1.2.0 on). The app checks for a new release shortly after it starts and every few hours, downloads it in the background, and installs it the next time the app restarts. To update right away, use **Restart to update** in the tray menu; **Check for updates** checks now. Your wallpaper, alarms, calendar sign-in and layout are kept.
+1. Go to the [Releases page](https://github.com/rabiya43/custom-wallpaper/releases/latest) and download **Live-Wallpaper-Dashboard-Setup-&lt;version&gt;.exe**.
+2. Run it and follow the steps.
+3. If Windows says **"Windows protected your PC"**, click **More info**, then **Run anyway**. This shows up because the app isn't signed with a paid certificate; it's safe.
 
-Windows may show "Windows protected your PC" because the installer isn't code-signed. Click **More info**, then **Run anyway**.
+Works on Windows 10 and 11 (64-bit). You only download it once: new versions install themselves.
 
-Requires Windows 10 or 11 (64-bit).
+## Getting started
 
-## Using it
+When the app starts, your wallpaper becomes the dashboard and a small icon appears in the **system tray** (bottom-right corner, near the clock; click the **^** arrow if you don't see it). Right-click that icon for everything:
 
-After installing, the dashboard becomes your wallpaper and an icon appears in the system tray (bottom-right, near the clock).
+- **Customize wallpaper**: change the picture, move widgets, set alarms and connect your calendar. You can also double-click the tray icon.
+- **Alarms** and **Calendars**: jump straight to those.
+- **Pause live wallpaper**: go back to your normal Windows wallpaper for a while.
+- **Start with Windows**: open the app automatically when you sign in.
+- **Quit**: close the app and bring back your normal wallpaper.
 
-- **Customize wallpaper** (tray menu, or double-click the tray icon) opens the editor on top of everything:
-  - **Find a wallpaper:** type something like `Elsa Frozen` and pick from the results. Filter by wide or portrait, and use **Load more** for more.
-  - **Search the whole web:** opens a browser window with Google, Bing or DuckDuckGo Images. Open any image, then **right-click → Set as wallpaper**.
-  - **Built-in wallpapers:** six designs (green hills, sunset, ocean, aurora, starry night, blossom) drawn at your screen's exact resolution, so they're always sharp.
-  - **Upload or drag in** your own image.
-  - **Fill screen or Centered:** choose it next to your current wallpaper, or with **Show as** when picking a search result. Wide images fill the screen and tall ones are centered by default.
-  - **Move and resize widgets:** double-click a widget, drag it, resize from the corner, press Esc to finish. "Reset layout" restores the defaults.
-  - Add **reminders**.
-  - **Weather:** click it to open the Windows Weather app. It uses **Windows Location** when that's on (Settings → Privacy & security → Location, with *Let desktop apps access your location*), otherwise an approximate location from your internet connection; the pin button opens that setting.
-  - **Battery:** click it to open Settings → Power & battery. A bolt shows while charging, and hovering shows the time left.
-  - Press **Done** to go back to your desktop.
-- **Alarms...** (tray menu, the bell widget, or the Alarms button in the editor):
-  - Add as many alarms as you like, each with a time, label and repeat days (for example weekdays only), or ring once on a chosen **date** (tomorrow, next week, any day).
-  - **Type when it should ring**, like in Outlook: `tomorrow 7am`, `fri 6:30pm`, `in 20 min`, `25/12 8pm`, `every weekday 7:30`, `mondays 8pm`. The app shows how it understood it and fills in the boxes. Ambiguous dates like `5/6` follow your Windows date order.
-  - Pick a built-in tone (Chime, Beep, Digital clock, Gentle) or **your own sound** (MP3, WAV, OGG, M4A, AAC, FLAC), and preview it.
-  - When an alarm goes off, a window pops up on top of everything and the sound fades in until you press **Snooze** (5 minutes) or **Dismiss**.
-  - The bell widget and the tray tooltip show the next alarm.
-  - Alarms ring while the app is running, even with the editor closed. Like most alarm apps, they can't wake a PC that is asleep or shut down.
-- **Calendars...** shows your events on the wallpaper: dots on the calendar and an **Upcoming** list of today's and the next events. See [Connecting your calendar](#connecting-your-calendar).
-  - **Sign in with Google** to **add, edit and delete** events from the app. Changes appear in Google Calendar on all your devices.
-  - Click a **date** on the calendar to see that day and add an event. Click an event in **Upcoming** to edit it.
-  - Type when an event happens, like `tomorrow 3-4:30pm`, `fri 10am` or `25/12 all day`.
-  - **Reminders by email:** choose when to be reminded (from the start time up to a week before) and tick **Email me** and/or **Notify on my phone**. Google sends the email to your Gmail at that time, even if your computer is off. New events get a 30-minute email and phone reminder unless you change it.
-- **Pause live wallpaper** brings back your normal Windows wallpaper until you resume.
-- **Start with Windows** launches it automatically when you sign in.
-- **Quit** closes the app and restores your normal wallpaper.
+Press **Done** at the top of the screen when you've finished customizing.
 
-The editor stops at the taskbar, so the taskbar stays usable while you customize. Colors are picked from the wallpaper automatically.
+## Choosing a wallpaper
 
-## Connecting your calendar
+In **Customize wallpaper**, use the **Theme & Wallpaper** panel:
 
-**Google Calendar (editable):** open **Calendars** and press **Sign in with Google**. Google's own sign-in page opens in your browser; the app never sees your password. Your sign-in is kept encrypted by Windows and you can sign out any time, which also removes the app's access.
+- **Search**: type a character, movie, show or place (for example *Elsa Frozen* or *Studio Ghibli*) and click a picture you like. Use **Load more** for more choices.
+- **Search the whole web**: opens Google, Bing or DuckDuckGo Images. Open any picture, right-click it and choose **Set as wallpaper**.
+- **Built-in wallpapers**: six ready-made designs that look sharp on any screen.
+- **Upload**: use a picture from your computer, or drag one onto the screen.
+- **Fill screen or Centered**: choose whether the picture fills the whole screen or sits in the middle at its natural shape.
 
-**Other calendars (read-only):** paste a private iCal link under **Other calendars**. The app checks the link, names it after the calendar, and refreshes it every 10 minutes. These can be shown but not edited.
+The colors of the clock and widgets change to match your picture automatically.
 
-- **Google Calendar** (on a computer): Settings → click your calendar under "Settings for my calendars" → *Integrate calendar* → copy **Secret address in iCal format**.
-- **Outlook / Microsoft 365**: Settings → Calendar → *Shared calendars* → under "Publish a calendar", pick your calendar and *Can view all details* → Publish → copy the **ICS** link.
-- **Apple iCloud**: share the calendar as a *Public Calendar* and copy the link (`webcal://` links work).
+To move or resize a widget, **double-click** it, drag it where you want, and resize it from the corner. Press **Esc** when you're done. **Reset layout** puts everything back.
 
-Keep the link private: anyone who has it can see your events. You can connect up to 10 calendars, each with its own color. A folder of `.ics` files also works.
+## Alarms
 
-## How the wallpaper search works
+Open **Alarms** (tray menu, the bell on your dashboard, or the Alarms button while customizing) and press **Add alarm**.
 
-The quick picks come from several free sources at once, with no API keys:
+- **Type when it should ring**, the way you'd say it: *tomorrow 7am*, *fri 6:30pm*, *in 20 min*, *25/12 8pm*, *every weekday 7:30*, *mondays 8pm*. The app shows how it understood you and fills in the details.
+- Or set the **time**, **date** and **repeat days** yourself, and add a **label** like *Class* or *Gym*.
+- Pick a **sound**: one of the built-in tones, or **your own sound** (MP3, WAV and more). Press **Preview** to hear it.
 
-| Source | Used for |
-|---|---|
-| [Wallhaven](https://wallhaven.cc) | Main source: high-resolution wallpapers, safe-for-work only |
-| Wikipedia | Lead image of the matching article (official art, posters) |
-| Wikimedia Commons | Freely licensed images |
-| Openverse | Creative Commons images |
+When an alarm goes off, a window pops up on top of everything and the sound gently gets louder until you press **Snooze** (5 minutes) or **Dismiss**. The bell on your dashboard always shows your next alarm.
 
-- Multi-word searches first look for images matching **every** word.
-- Wallhaven images are ranked by their character tags, so `Elsa` puts pictures of Elsa alone above group shots.
-- Logos, icons, banners and small images are removed; higher-resolution, wallpaper-shaped images rank higher.
-- A source that is down or blocked on your network is skipped without breaking the search. Requests stay under Wallhaven's rate limit.
+Alarms ring while the app is running, even if you're not customizing. Like most alarm apps, they can't wake a computer that's asleep or turned off.
 
-For anything the quick picks don't cover, **Search the whole web** gives you every image Google, Bing or DuckDuckGo can find. Images are downloaded only from public addresses.
+## Your calendar
 
-Images belong to their creators and are meant for personal use.
+Open **Calendars** and press **Sign in with Google**. Google's sign-in page opens in your browser; sign in there and come back. The app never sees your password.
 
-## How it sits behind the icons
+Once you're signed in:
 
-Explorer draws the desktop icons in a window called `SHELLDLL_DefView`. The app asks Explorer to create a `WorkerW` layer between the icons and the static wallpaper, then places its own window there (on Windows 11 24H2 and later, it is placed inside `Progman`, just below the icons). If Explorer restarts, the app re-attaches automatically. On quit, it tells Windows to repaint the normal wallpaper.
+- Your events appear on the dashboard: dots on the calendar and an **Upcoming** list.
+- **Add an event**: click a date on the calendar, then **Add event**. Type when it happens, like *tomorrow 3-4:30pm* or *fri 10am*.
+- **Change or delete an event**: click it in **Upcoming** or in a day's list.
+- **Get reminded by email**: choose when (for example *30 minutes before*) and tick **Email me** and/or **Notify on my phone**. Google sends the reminder, so it arrives even when your computer is off.
 
-## Setting up Google sign-in (for whoever builds the app)
+Everything you change shows up in Google Calendar on your phone and other devices too.
 
-Google needs to know which app is asking for calendar access. This is a one-time setup in your Google account; it's free.
+**Other calendars** (like a university timetable or Outlook) can be shown too, read-only: open **Other calendars** in the Calendars panel and paste the calendar's private iCal link. The panel explains where to find it.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create a project (for example "Live Wallpaper Dashboard").
-2. **APIs & Services → Library**: search for **Google Calendar API** and press **Enable**.
-3. **APIs & Services → OAuth consent screen** (called **Google Auth Platform** in newer consoles):
-   - User type **External**, app name "Live Wallpaper Dashboard", your email as support and developer contact.
-   - **Scopes / Data access**: add `.../auth/calendar.readonly` and `.../auth/calendar.events`.
-   - **Test users / Audience**: add the Google accounts that will use the app (up to 100 while the app is in testing).
-4. **APIs & Services → Credentials → Create credentials → OAuth client ID**, application type **Desktop app**. Download the JSON.
-5. Save that file as `src/main/google-oauth.json` (see `google-oauth.example.json`), then `npm start` or `npm run dist`. The file is left out of git on purpose.
+## Weather and battery
 
-While the app is in "Testing", Google shows a "Google hasn't verified this app" screen during sign-in (click **Continue**), and only the test users you listed can sign in. To let anyone sign in, submit the app for verification under the consent screen settings; Google reviews apps that use calendar scopes, which can take a few weeks.
+- **Weather** uses your location to show the current temperature and conditions. For your exact area, turn on **Location** in Windows (Settings → Privacy & security → Location, including *Let desktop apps access your location*); otherwise the app estimates your city from your internet connection. While customizing, click the weather to open the Windows Weather app, or the pin to open the Location setting.
+- **Battery** shows your charge, a lightning bolt while charging, and the time left when you hover over it. While customizing, click it to open Windows' Power & battery settings.
 
-## Releasing a new version
+## Updates
 
-1. Change `"version"` in `package.json` (for example `1.2.1`) and commit.
-2. Tag and push: `git tag v1.2.1` then `git push origin v1.2.1`.
-3. GitHub Actions (`.github/workflows/release.yml`) builds the installer on Windows and publishes the release. Installed copies pick it up automatically.
+The app updates itself. It checks for a new version when it starts and every few hours, downloads it in the background, and installs it the next time the app restarts. To update right away, right-click the tray icon and choose **Restart to update**. Your wallpaper, alarms, layout and calendar sign-in are kept.
 
-For Google sign-in in these builds, add a repository secret named `GOOGLE_OAUTH_JSON` (Settings → Secrets and variables → Actions) containing the whole `google-oauth.json` file.
+## Privacy
 
-**Releasing by hand instead:** run `npm run dist`, then attach **all three** files from `dist/` to the GitHub release: `Live-Wallpaper-Dashboard-Setup-<version>.exe`, its `.exe.blockmap`, and `latest.yml`. The updater reads `latest.yml` to find new versions, and the blockmap lets it download only what changed.
+- Everything you set up (wallpaper, alarms, reminders, layout) is stored on your computer.
+- Google Calendar: the app talks directly to Google. Your sign-in is stored encrypted by Windows, and **Sign out** in the Calendars panel removes the app's access.
+- Weather uses [Open-Meteo](https://open-meteo.com); your approximate location comes from Windows or from your internet connection.
+- Pictures you find through search belong to their creators and are for personal use.
 
-## Develop
+## Questions
 
-Requires [Node.js](https://nodejs.org) 20 or later.
+**I can't see the tray icon.** Click the **^** arrow at the bottom-right of the taskbar; you can drag the icon out so it's always visible.
 
-```bash
-npm install
-npm start        # run the app
-npm run dist     # build the installer into dist/
-```
+**Google says "access blocked" or "This app is waiting for Google's review".** Google sign-in is still in testing, so only invited accounts can sign in. Contact the developer through her [GitHub profile](https://github.com/rabiya43) to be added. Please don't post your email address in a public issue.
 
-Run `electron . --quit` (or the installed app with `--quit`) to close a running copy.
+**Google says "Google hasn't verified this app".** That's expected while the app is being reviewed by Google. Click **Continue**.
 
-```
-src/
-  main/
-    main.js          windows, tray, web search window, alarm window
-    alarms.js        alarm schedule, snooze, custom sounds
-    calendars.js     calendar links and .ics files, repeating events
-    google.js        Google sign-in (PKCE, encrypted token) and Calendar read/write
-    when.js          understands typed dates and times ("tomorrow 7am", "every weekday")
-    updater.js       automatic updates from GitHub Releases
-    windows-location.js  exact location from Windows' Location service
-    net-safety.js    only public addresses are downloaded
-    desktop-host.js  places the wallpaper behind the desktop icons (Win32 via koffi)
-    api.js           app:// scheme: serves the dashboard and its /api/* endpoints
-    image-search.js  multi-source wallpaper search and ranking
-    config.js        settings file
-    preload.js       bridge between pages and the main process
-  renderer/
-    index.html, script.js, style.css   the dashboard (wallpaper and editor modes)
-    web.html, web.js                   toolbar of the web search window
-    alarm.html, alarm.js, sounds.js    ringing window and alarm tones
-build/icon.png
-```
+**The app asks me to sign in to Google again.** While the app is in testing, Google ends sign-ins after 7 days. Sign in again from the Calendars panel.
 
-## Tech
+**My alarm didn't ring.** The app has to be running and the computer awake. Check the tray icon is there, and turn on **Start with Windows** so it's always running.
 
-Electron, JavaScript, HTML, CSS, koffi (Win32 calls), Google Calendar API, chrono-node (typed dates), node-ical, Open-Meteo (weather), ipwho.is (approximate location), Wallhaven, Wikipedia and Openverse APIs, Font Awesome.
+**The weather shows the wrong city.** Turn on Windows Location (see [Weather and battery](#weather-and-battery)).
+
+**Google Images asks "I'm not a robot".** Solve it once, or switch the search window to Bing or DuckDuckGo.
+
+**How do I uninstall it?** Windows Settings → Apps → Installed apps → **Live Wallpaper Dashboard** → Uninstall. Your normal wallpaper comes back.
+
+Found a problem or have an idea? [Open an issue](https://github.com/rabiya43/custom-wallpaper/issues).
+
+---
+
+Made by Rabiya Tahir. Building it yourself? See [DEVELOPMENT.md](DEVELOPMENT.md).
