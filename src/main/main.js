@@ -5,7 +5,7 @@
 //   editor     the same dashboard as a normal window on top, for customizing
 //   web        a small browser for searching any site, with "Set as wallpaper" on right-click
 const path = require('path');
-const { app, BrowserWindow, WebContentsView, Menu, Tray, ipcMain, screen, dialog, nativeImage, Notification } = require('electron');
+const { app, BrowserWindow, WebContentsView, Menu, Tray, ipcMain, screen, dialog, nativeImage, Notification, shell } = require('electron');
 const api = require('./api');
 const config = require('./config');
 const desktopHost = require('./desktop-host');
@@ -419,6 +419,30 @@ ipcMain.on('alarm:action', (event, { id, action }) => {
 });
 
 ipcMain.on('editor:minimize', () => editorWin?.minimize());
+
+// Windows apps and settings pages the dashboard's widgets can open (a fixed list, nothing else)
+const WINDOWS_LINKS = {
+    weather: ['bingweather:', 'msnweather:', 'https://www.msn.com/weather'],
+    battery: ['ms-settings:batterysaver'],
+    location: ['ms-settings:privacy-location'],
+};
+function protocolRegistered(url) {
+    const scheme = url.split(':')[0];
+    if (scheme === 'https' || scheme === 'ms-settings') return true;
+    try {
+        require('child_process').execFileSync('reg', ['query', `HKCR\\${scheme}`], { windowsHide: true, stdio: 'ignore', timeout: 3000 });
+        return true;
+    } catch {
+        return false;
+    }
+}
+ipcMain.handle('windows:open', async (_e, target) => {
+    const choices = WINDOWS_LINKS[target];
+    if (!choices) return false;
+    const url = choices.find(protocolRegistered);  // e.g. fall back to the MSN weather site without the app
+    await shell.openExternal(url);
+    return true;
+});
 ipcMain.handle('when:parse', (_e, { text, mode }) => when.parse(text, { mode }));
 
 // Google Calendar

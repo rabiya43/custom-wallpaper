@@ -1581,6 +1581,9 @@ const ef = {
     location: document.getElementById('ef-location'),
     calendar: document.getElementById('ef-calendar'),
     notes: document.getElementById('ef-notes'),
+    reminder: document.getElementById('ef-reminder'),
+    remindEmail: document.getElementById('ef-remind-email'),
+    remindPopup: document.getElementById('ef-remind-popup'),
     error: document.getElementById('ef-error'),
     del: document.getElementById('ef-delete'),
     save: document.getElementById('ef-save'),
@@ -1592,6 +1595,40 @@ const hhmmOf = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
 function syncAllDay() {
     document.querySelectorAll('#event-form .ef-time').forEach(el => { el.hidden = ef.allDay.checked; });
+}
+
+// Reminder: pick a time before the event, then how (email and/or phone notification)
+const DEFAULT_REMINDER = { minutes: 30, email: true, popup: true };
+
+function setReminderFields(r) {
+    const minutes = r ? String(r.minutes) : '';
+    if (minutes && ![...ef.reminder.options].some(o => o.value === minutes)) {
+        // Keep an unusual reminder from Google (e.g. 45 minutes) as its own option
+        const m = Number(minutes);
+        const label = m % 1440 === 0 ? `${m / 1440} days before` : m % 60 === 0 ? `${m / 60} hours before` : `${m} minutes before`;
+        ef.reminder.add(new Option(label, minutes));
+    }
+    ef.reminder.value = minutes;
+    ef.remindEmail.checked = !!(r && r.email);
+    ef.remindPopup.checked = !!(r && r.popup);
+    syncReminder();
+}
+
+function syncReminder() {
+    const off = ef.reminder.value === '';
+    ef.remindEmail.disabled = off;
+    ef.remindPopup.disabled = off;
+    document.querySelector('#event-form .reminder-row').classList.toggle('reminder-off', off);
+    const hint = document.getElementById('ef-reminder-hint');
+    hint.textContent = off ? 'No reminder for this event.'
+        : ef.remindEmail.checked ? `Google emails ${googleState?.email || 'you'} at that time, even if this computer is off.`
+        : ef.remindPopup.checked ? 'Google Calendar notifies you on your phone and in the browser at that time.'
+        : 'Tick "Email me" or "Notify on my phone" to get this reminder.';
+}
+
+function readReminderFields() {
+    if (ef.reminder.value === '' || (!ef.remindEmail.checked && !ef.remindPopup.checked)) return null;
+    return { minutes: Number(ef.reminder.value), email: ef.remindEmail.checked, popup: ef.remindPopup.checked };
 }
 
 async function openEventEditor({ event = null, date = null, returnDay = null } = {}) {
@@ -1625,6 +1662,7 @@ async function openEventEditor({ event = null, date = null, returnDay = null } =
         ef.notes.value = event.description || '';
         ef.calendar.value = event.calendarId;
         ef.calendar.disabled = true;  // moving events between calendars isn't supported here
+        setReminderFields(event.reminder || null);
         document.getElementById('event-title').textContent = 'Edit event';
         document.getElementById('event-subtitle').textContent = event.calendar;
     } else {
@@ -1639,6 +1677,7 @@ async function openEventEditor({ event = null, date = null, returnDay = null } =
         ef.location.value = '';
         ef.notes.value = '';
         ef.calendar.disabled = false;
+        setReminderFields(DEFAULT_REMINDER);
         document.getElementById('event-title').textContent = 'New event';
         document.getElementById('event-subtitle').textContent = googleState.email || 'Google Calendar';
     }
@@ -1707,6 +1746,7 @@ if (IS_APP && window.desktop && MODE === 'editor') {
     document.getElementById('day-add-btn').addEventListener('click', () => openEventEditor({ date: dayViewDate, returnDay: dayViewDate }));
 
     ef.allDay.addEventListener('change', syncAllDay);
+    [ef.reminder, ef.remindEmail, ef.remindPopup].forEach(el => el.addEventListener('change', syncReminder));
     ef.when.addEventListener('input', () => { clearTimeout(efWhenTimer); efWhenTimer = setTimeout(readEventWhen, 150); });
     ef.when.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); clearTimeout(efWhenTimer); readEventWhen(); }
@@ -1732,6 +1772,7 @@ if (IS_APP && window.desktop && MODE === 'editor') {
             location: ef.location.value.trim(),
             description: ef.notes.value.trim(),
             allDay: ef.allDay.checked,
+            reminder: readReminderFields(),
         };
         if (!payload.title) { ef.error.textContent = 'Give the event a title.'; ef.title.focus(); return; }
         if (!ef.date.value) { ef.error.textContent = 'Pick a date.'; return; }
@@ -1758,7 +1799,9 @@ if (IS_APP && window.desktop && MODE === 'editor') {
         ef.save.textContent = 'Save';
         if (result.error) { ef.error.textContent = result.error; return; }
 
-        showToast(editingEvent ? 'Event updated' : `Added "${payload.title}" to Google Calendar`);
+        const r = payload.reminder;
+        const reminderNote = r && r.email ? ` You'll get an email ${r.minutes ? `${ef.reminder.selectedOptions[0].text.toLowerCase()}` : 'when it starts'}.` : '';
+        showToast((editingEvent ? 'Event updated.' : `Added "${payload.title}" to Google Calendar.`) + reminderNote);
         await refreshCalendarEvents(true);
         closePanel(document.getElementById('event-modal'));
     });
@@ -1783,19 +1826,38 @@ if (IS_APP && window.desktop && MODE === 'editor') {
     });
 }
 
+// --- Battery (from Windows); clicking it in the editor opens Settings > Power & battery ---
+function durationText(seconds) {
+    const mins = Math.round(seconds / 60);
+    if (mins < 60) return `${mins} min`;
+    return `${Math.floor(mins / 60)} h ${mins % 60} min`;
+}
+
 async function updateBattery() {
-    if ('getBattery' in navigator) {
-        const battery = await navigator.getBattery();
-        const update = () => {
-            document.getElementById('battery-level').innerText = `${Math.round(battery.level * 100)}%`;
-            document.getElementById('battery-icon').className = 'fa-solid ' + (battery.charging || battery.level > 0.75 ? 'fa-battery-full' : battery.level > 0.5 ? 'fa-battery-three-quarters' : battery.level > 0.25 ? 'fa-battery-half' : 'fa-battery-quarter');
-        };
-        update();
-        battery.addEventListener('levelchange', update);
-        battery.addEventListener('chargingchange', update);
-    }
+    if (!('getBattery' in navigator)) return;
+    const battery = await navigator.getBattery();
+    const widget = document.getElementById('battery-widget');
+    const update = () => {
+        const pct = Math.round(battery.level * 100);
+        document.getElementById('battery-level').innerText = `${pct}%`;
+        document.getElementById('battery-icon').className = 'fa-solid ' + (battery.level > 0.9 ? 'fa-battery-full' : battery.level > 0.6 ? 'fa-battery-three-quarters' : battery.level > 0.35 ? 'fa-battery-half' : battery.level > 0.1 ? 'fa-battery-quarter' : 'fa-battery-empty');
+        widget.classList.toggle('is-charging', battery.charging);
+        widget.classList.toggle('is-low', !battery.charging && battery.level <= 0.2);
+        let tip = battery.charging ? `Charging, ${pct}%` : `On battery, ${pct}%`;
+        if (battery.charging && Number.isFinite(battery.chargingTime) && battery.chargingTime > 0) tip += ` (full in ${durationText(battery.chargingTime)})`;
+        if (!battery.charging && Number.isFinite(battery.dischargingTime)) tip += ` (about ${durationText(battery.dischargingTime)} left)`;
+        widget.title = MODE === 'editor' ? `${tip}. Click for battery settings.` : tip;
+    };
+    update();
+    ['levelchange', 'chargingchange', 'chargingtimechange', 'dischargingtimechange'].forEach(ev => battery.addEventListener(ev, update));
 }
 updateBattery();
+
+if (MODE === 'editor' && window.desktop) {
+    const batteryWidget = document.getElementById('battery-widget');
+    batteryWidget.classList.add('interactive-btn');
+    onSingleClick(batteryWidget, () => window.desktop.openWindows('battery'));
+}
 
 // --- Reminders ---
 const todoInput = document.getElementById('todo-input');
@@ -1898,12 +1960,13 @@ async function fetchWeather(lat, lon, fallbackName) {
 async function loadWeather() {
     const useDefault = () => fetchWeather(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon, DEFAULT_LOCATION.name);
     if (IS_APP) {
-        // Desktop apps don't get browser geolocation; use an approximate location from the IP address
+        // Windows Location when it's on; otherwise an approximate location from the internet connection
         try {
             const res = await fetch('/api/location');
             if (!res.ok) throw new Error();
             const loc = await res.json();
-            return fetchWeather(loc.lat, loc.lon, loc.name);
+            showLocationSource(loc);
+            return fetchWeather(loc.lat, loc.lon, loc.source === 'windows' ? undefined : loc.name);
         } catch (e) {
             return useDefault();
         }
@@ -1915,8 +1978,41 @@ async function loadWeather() {
         { timeout: 8000 }
     );
 }
+function showLocationSource(loc) {
+    const exact = loc.source === 'windows';
+    const hint = document.getElementById('weather-location-hint');
+    const widget = document.getElementById('weather-container');
+    widget.classList.toggle('location-exact', exact);
+    if (MODE === 'editor') {
+        // Offer to turn on Windows Location when the weather is only approximate
+        hint.hidden = exact;
+        widget.title = exact
+            ? 'Weather for your location from Windows. Click to open the Weather app.'
+            : 'Approximate location from your internet connection. Click to open the Weather app, or the pin to turn on Windows Location for exact weather.';
+    } else {
+        widget.title = exact ? 'Weather for your location (Windows Location)' : 'Weather for your approximate location';
+    }
+}
+
 loadWeather();
 setInterval(loadWeather, 30 * 60 * 1000);
+
+// In the editor: the weather widget opens the Windows Weather app; the pin opens Location settings
+if (MODE === 'editor' && window.desktop) {
+    const weatherWidget = document.getElementById('weather-container');
+    weatherWidget.classList.add('interactive-btn');
+    onSingleClick(weatherWidget, (e) => {
+        if (e.target.closest('#weather-location-hint')) return;
+        window.desktop.openWindows('weather');
+    });
+    document.getElementById('weather-location-hint').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await window.desktop.openWindows('location');
+        showToast('Turn on "Location services" and "Let desktop apps access your location", then the weather updates within a minute.');
+        // Check again shortly, so switching it on takes effect without restarting
+        setTimeout(loadWeather, 60000);
+    });
+}
 
 // --- Editor toolbar (desktop app) ---
 if (MODE === 'editor' && window.desktop) {

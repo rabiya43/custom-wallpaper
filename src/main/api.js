@@ -7,6 +7,7 @@ const imageSearch = require('./image-search');
 const calendars = require('./calendars');
 const alarms = require('./alarms');
 const { safeFetch } = require('./net-safety');
+const windowsLocation = require('./windows-location');
 
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
 const STATIC_FILES = {
@@ -44,14 +45,25 @@ async function fetchImage(raw) {
     return { buf, type };
 }
 
-let cachedLocation = null;
-async function approximateLocation() {
-    if (cachedLocation) return cachedLocation;
+let cachedIpLocation = null;
+async function ipLocation() {
+    if (cachedIpLocation) return cachedIpLocation;
     const res = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(8000) });
     const data = await res.json();
     if (!data.success) throw new Error('Location lookup failed');
-    cachedLocation = { lat: data.latitude, lon: data.longitude, name: data.city };
-    return cachedLocation;
+    cachedIpLocation = { lat: data.latitude, lon: data.longitude, name: data.city };
+    return cachedIpLocation;
+}
+
+/**
+ * Windows' Location service when it's on (exact), otherwise an approximate location from the
+ * internet connection. `windows` tells the dashboard whether Windows Location could be used.
+ */
+async function location() {
+    const win = await windowsLocation.get();
+    if (win.status === 'ok') return { lat: win.lat, lon: win.lon, source: 'windows', windows: 'ok' };
+    const ip = await ipLocation();
+    return { ...ip, source: 'ip', windows: win.status };
 }
 
 async function handle(request) {
@@ -79,7 +91,7 @@ async function handle(request) {
                 headers: { 'Content-Type': SOUND_TYPES[path.extname(file)] || 'application/octet-stream' },
             });
         }
-        if (route === '/api/location') return json(await approximateLocation());
+        if (route === '/api/location') return json(await location());
 
         const file = route.replace(/^\/+/, '') || 'index.html';
         if (STATIC_FILES[file]) {

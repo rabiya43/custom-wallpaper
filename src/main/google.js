@@ -262,6 +262,7 @@ async function calendars({ force = false } = {}) {
             primary: !!c.primary,
             writable: c.accessRole === 'owner' || c.accessRole === 'writer',
             shown: c.selected !== false,
+            defaultReminders: c.defaultReminders || [],
         }))
         .sort((a, b) => (b.primary - a.primary) || (b.writable - a.writable) || a.name.localeCompare(b.name));
     calendarCache = { time: Date.now(), items };
@@ -292,6 +293,7 @@ function toEvent(ev, cal) {
         color: cal.color,
         editable: cal.writable && !ev.locked,
         recurring: !!ev.recurringEventId,
+        reminder: readReminder(ev, cal),
     };
 }
 
@@ -322,12 +324,38 @@ async function events(from, to, { force = false } = {}) {
     return all;
 }
 
+/**
+ * The event's reminder as the dashboard shows it: { minutes, email, popup } or null for none.
+ * Events that use the calendar's default reminders report those defaults.
+ */
+function readReminder(ev, cal) {
+    const list = ev.reminders?.useDefault === false ? (ev.reminders.overrides || []) : (cal.defaultReminders || []);
+    if (!list.length) return null;
+    const minutes = Math.min(...list.map(r => r.minutes));
+    return {
+        minutes,
+        email: list.some(r => r.method === 'email'),
+        popup: list.some(r => r.method === 'popup'),
+    };
+}
+
+/** Google's reminder settings from { minutes, email, popup } (null = no reminder). */
+function reminderBody(r) {
+    if (!r || r.minutes === null || r.minutes === undefined || (!r.email && !r.popup)) return { useDefault: false, overrides: [] };
+    const minutes = Math.max(0, Math.min(40320, Math.round(Number(r.minutes) || 0)));  // Google allows up to 4 weeks
+    const overrides = [];
+    if (r.email) overrides.push({ method: 'email', minutes });
+    if (r.popup) overrides.push({ method: 'popup', minutes });
+    return { useDefault: false, overrides };
+}
+
 /** Google's event body from the dashboard's form: { title, start, end, allDay, location, description } */
 function eventBody(e) {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const body = { summary: String(e.title || '').slice(0, 200) || '(No title)' };
     if (e.location !== undefined) body.location = String(e.location).slice(0, 500);
     if (e.description !== undefined) body.description = String(e.description).slice(0, 5000);
+    if (e.reminder !== undefined) body.reminders = reminderBody(e.reminder);
     if (e.allDay) {
         // start/end are local calendar days 'YYYY-MM-DD'; Google's end date is exclusive
         const [y, m, d] = e.endDate.split('-').map(Number);

@@ -66,7 +66,7 @@
             <div class="weather-details" style="font-size: 0.75rem; color: #add8e6; margin-top: 0px;">
                 <span><i class="fa-solid fa-droplet"></i> <span id="humidity-level">--</span></span>
             </div>
-            <div class="weather-loc" id="weather-loc" style="font-size: 0.8rem; padding-top: 8px; border: none; font-weight: 600;">Lahore</div>
+            <div class="weather-loc-row"><div class="weather-loc" id="weather-loc" style="font-size: 0.8rem; padding-top: 8px; border: none; font-weight: 600;">Lahore</div><button type="button" class="weather-location-hint" id="weather-location-hint" hidden title="Use exact location (turn on Windows Location)" aria-label="Use exact location"><i class="fa-solid fa-location-crosshairs"></i></button></div>
         </div>
 
         <!-- Calendar Widget -->
@@ -407,6 +407,33 @@
                         <select id="ef-calendar"></select>
                     </label>
                 </div>
+                <div class="form-row reminder-row">
+                    <label class="field">
+                        <span>Reminder</span>
+                        <select id="ef-reminder">
+                            <option value="">No reminder</option>
+                            <option value="0">At the start time</option>
+                            <option value="5">5 minutes before</option>
+                            <option value="10">10 minutes before</option>
+                            <option value="15">15 minutes before</option>
+                            <option value="30">30 minutes before</option>
+                            <option value="60">1 hour before</option>
+                            <option value="120">2 hours before</option>
+                            <option value="1440">1 day before</option>
+                            <option value="2880">2 days before</option>
+                            <option value="10080">1 week before</option>
+                        </select>
+                    </label>
+                    <label class="check-field">
+                        <input type="checkbox" id="ef-remind-email">
+                        <span><i class="fa-regular fa-envelope"></i> Email me</span>
+                    </label>
+                    <label class="check-field">
+                        <input type="checkbox" id="ef-remind-popup">
+                        <span><i class="fa-solid fa-mobile-screen"></i> Notify on my phone</span>
+                    </label>
+                </div>
+                <p class="field-hint" id="ef-reminder-hint">Google sends the email to your Gmail at that time, even if this computer is off.</p>
                 <label class="field">
                     <span>Notes</span>
                     <textarea id="ef-notes" rows="3" maxlength="5000" placeholder="Optional"></textarea>
