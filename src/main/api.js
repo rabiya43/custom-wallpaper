@@ -2,16 +2,21 @@
 // Using one origin for every window means they all share localStorage and IndexedDB.
 const path = require('path');
 const fs = require('fs');
-const dns = require('dns').promises;
-const net = require('net');
 const { protocol } = require('electron');
 const imageSearch = require('./image-search');
-const config = require('./config');
+const calendars = require('./calendars');
+const alarms = require('./alarms');
+const { safeFetch } = require('./net-safety');
 
 const RENDERER_DIR = path.join(__dirname, '..', 'renderer');
 const STATIC_FILES = {
     'index.html': 'text/html', 'script.js': 'text/javascript', 'style.css': 'text/css',
     'web.html': 'text/html', 'web.js': 'text/javascript',
+    'alarm.html': 'text/html', 'alarm.js': 'text/javascript', 'sounds.js': 'text/javascript',
+};
+const SOUND_TYPES = {
+    '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
+    '.aac': 'audio/aac', '.flac': 'audio/flac',
 };
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 
@@ -25,76 +30,18 @@ function registerScheme() {
 const json = (data, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
 
-function isPrivateAddress(ip) {
-    if (net.isIPv4(ip)) {
-        const [a, b] = ip.split('.').map(Number);
-        return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31)
-            || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224;
-    }
-    const v6 = ip.toLowerCase();
-    if (v6.startsWith('::ffff:')) return isPrivateAddress(v6.slice(7));
-    return v6 === '::1' || v6 === '::' || v6.startsWith('fc') || v6.startsWith('fd') || v6.startsWith('fe80');
-}
-
-/** Only http(s) URLs that resolve to public addresses, so a page can't make the app read the local network. */
-async function isPublicUrl(raw) {
-    let url;
-    try { url = new URL(raw); } catch { return false; }
-    if (!['http:', 'https:'].includes(url.protocol)) return false;
-    try {
-        const addrs = await dns.lookup(url.hostname, { all: true });
-        return addrs.length > 0 && !addrs.some(a => isPrivateAddress(a.address));
-    } catch {
-        return false;
-    }
-}
-
-/** Downloads an image from the internet, following a few redirects and re-checking each hop. */
+/** Downloads an image from a public address. */
 async function fetchImage(raw) {
-    let url = raw;
-    for (let hop = 0; hop < 4; hop++) {
-        if (!(await isPublicUrl(url))) throw Object.assign(new Error('URL not allowed'), { status: 400 });
-        const res = await fetch(url, {
-            headers: { 'User-Agent': imageSearch.USER_AGENT }, redirect: 'manual', signal: AbortSignal.timeout(15000),
-        });
-        if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
-            url = new URL(res.headers.get('location'), url).toString();
-            continue;
-        }
-        if (!res.ok) throw Object.assign(new Error(`Image server returned ${res.status}`), { status: 502 });
-        const type = (res.headers.get('content-type') || '').split(';')[0].trim();
-        if (!imageSearch.ALLOWED_MIME.has(type)) throw Object.assign(new Error('Not a supported image'), { status: 415 });
-        if (Number(res.headers.get('content-length') || 0) > MAX_IMAGE_BYTES) {
-            throw Object.assign(new Error('Image too large'), { status: 413 });
-        }
-        const buf = Buffer.from(await res.arrayBuffer());
-        if (buf.length > MAX_IMAGE_BYTES) throw Object.assign(new Error('Image too large'), { status: 413 });
-        return { buf, type };
+    const res = await safeFetch(raw, { headers: { 'User-Agent': imageSearch.USER_AGENT } });
+    if (!res.ok) throw Object.assign(new Error(`Image server returned ${res.status}`), { status: 502 });
+    const type = (res.headers.get('content-type') || '').split(';')[0].trim();
+    if (!imageSearch.ALLOWED_MIME.has(type)) throw Object.assign(new Error('Not a supported image'), { status: 415 });
+    if (Number(res.headers.get('content-length') || 0) > MAX_IMAGE_BYTES) {
+        throw Object.assign(new Error('Image too large'), { status: 413 });
     }
-    throw Object.assign(new Error('Too many redirects'), { status: 502 });
-}
-
-async function calendarEvents() {
-    const dir = config.get('calendarDir');
-    if (!dir || !fs.existsSync(dir)) return [];
-    const ical = require('node-ical');
-    const events = [];
-    for (const name of fs.readdirSync(dir)) {
-        if (!name.toLowerCase().endsWith('.ics')) continue;
-        try {
-            const data = ical.sync.parseFile(path.join(dir, name));
-            for (const ev of Object.values(data)) {
-                if (ev.type !== 'VEVENT' || !ev.start) continue;
-                const start = new Date(ev.start);
-                // Local date, so the dashboard can match it against the calendar grid
-                const ymd = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
-                events.push({ title: String(ev.summary || 'Event'), start: ymd });
-            }
-        } catch (e) {
-            console.warn(`Skipping ${name}:`, e.message);
-        }
-    }
-    return events;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > MAX_IMAGE_BYTES) throw Object.assign(new Error('Image too large'), { status: 413 });
+    return { buf, type };
 }
 
 let cachedLocation = null;
@@ -122,7 +69,16 @@ async function handle(request) {
             const { buf, type } = await fetchImage(url.searchParams.get('url') || '');
             return new Response(buf, { headers: { 'Content-Type': type } });
         }
-        if (route === '/api/calendar/events') return json(await calendarEvents());
+        if (route === '/api/calendar/events') {
+            return json(await calendars.allEvents({ force: url.searchParams.get('refresh') === '1' }));
+        }
+        if (route === '/api/alarm-sound') {
+            const file = alarms.soundFile(url.searchParams.get('name') || '');
+            if (!file) return json({ error: 'Sound not found' }, 404);
+            return new Response(fs.readFileSync(file), {
+                headers: { 'Content-Type': SOUND_TYPES[path.extname(file)] || 'application/octet-stream' },
+            });
+        }
         if (route === '/api/location') return json(await approximateLocation());
 
         const file = route.replace(/^\/+/, '') || 'index.html';

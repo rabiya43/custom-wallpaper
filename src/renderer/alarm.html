@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alarm</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            user-select: none;
+        }
+        .card {
+            width: calc(100% - 24px);
+            height: calc(100% - 24px);
+            border-radius: 26px;
+            background: linear-gradient(145deg, rgba(34, 38, 52, 0.97), rgba(20, 22, 30, 0.97));
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 22px;
+            -webkit-app-region: drag;
+        }
+        .bell {
+            font-size: 2rem;
+            color: #FFD166;
+            animation: ring 0.9s ease-in-out infinite;
+            margin-bottom: 4px;
+        }
+        @keyframes ring {
+            0%, 100% { transform: rotate(0); }
+            20% { transform: rotate(-16deg); }
+            40% { transform: rotate(14deg); }
+            60% { transform: rotate(-8deg); }
+            80% { transform: rotate(6deg); }
+        }
+        .time { font-size: 3.2rem; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+        .time small { font-size: 1.1rem; font-weight: 700; margin-left: 4px; opacity: 0.8; }
+        .label { font-size: 1rem; color: rgba(255, 255, 255, 0.75); min-height: 1.2em; text-align: center; }
+        .actions { display: flex; gap: 12px; margin-top: 14px; -webkit-app-region: no-drag; }
+        button {
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 999px;
+            padding: 12px 26px;
+            cursor: pointer;
+            transition: filter 0.15s ease, transform 0.1s ease;
+        }
+        button:hover { filter: brightness(1.12); }
+        button:active { transform: scale(0.97); }
+        button:focus-visible { outline: 3px solid #FFD166; outline-offset: 2px; }
+        .snooze { background: rgba(255, 255, 255, 0.12); color: #fff; }
+        .dismiss { background: #FFD166; color: #1b1b1b; }
+    </style>
+</head>
+<body>
+    <div class="card" role="alertdialog" aria-labelledby="time" aria-describedby="label">
+        <i class="fa-solid fa-bell bell" aria-hidden="true"></i>
+        <div class="time" id="time"></div>
+        <div class="label" id="label"></div>
+        <div class="actions">
+            <button type="button" class="snooze" id="snooze">Snooze</button>
+            <button type="button" class="dismiss" id="dismiss">Dismiss</button>
+        </div>
+    </div>
+    <script src="sounds.js"></script>
+    <script src="alarm.js"></script>
+</body>
+</html>

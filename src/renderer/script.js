@@ -214,50 +214,26 @@ const WallpaperDB = {
     }
 };
 
-// --- CURATED COLOR PALETTES (Tailored Aesthetic & HCI Contrast) ---
-const CHARACTER_PALETTES = {
-    'buttercup': {bg1:'#2D5A46', bg2:'#509F8C', widgetBg:'rgba(0,0,0,0.25)', accent:'#A5C271', glow:'#E2F3B9', text:'#FFF'},
-    'blossom':   {bg1:'#882D46', bg2:'#E06B78', widgetBg:'rgba(60,15,25,0.4)', accent:'#FFB6C1', glow:'#FFE4E1', text:'#FFF'},
-    'bubbles':   {bg1:'#204060', bg2:'#4A8AB7', widgetBg:'rgba(15,30,50,0.4)', accent:'#87CEEB', glow:'#E0FFFF', text:'#FFF'},
-    'snow white':{bg1:'#1C2A4A', bg2:'#C2943A', widgetBg:'rgba(15,25,45,0.45)', accent:'#FFD166', glow:'#FFE4A0', text:'#FFF'},
-    'tweety':    {bg1:'#B8860B', bg2:'#2980B9', widgetBg:'rgba(60,45,10,0.45)', accent:'#FFE169', glow:'#FFF9C4', text:'#FFF'},
-    'annabelle': {bg1:'#220606', bg2:'#6B1818', widgetBg:'rgba(30,5,5,0.6)', accent:'#E55353', glow:'#FF8A80', text:'#FFF'},
-    'midnight':  {bg1:'#11141A', bg2:'#2C3240', widgetBg:'rgba(15,18,25,0.5)', accent:'#90CAF9', glow:'#E3F2FD', text:'#FFF'},
-    'cyberpunk': {bg1:'#2B0B3F', bg2:'#007B8C', widgetBg:'rgba(35,10,50,0.5)', accent:'#00E5FF', glow:'#E1BEE7', text:'#FFF'},
-    'mario':     {bg1:'#8B1E1E', bg2:'#1A4480', widgetBg:'rgba(50,10,10,0.5)', accent:'#FFC107', glow:'#FFECB3', text:'#FFF'},
-    'batman':    {bg1:'#15171C', bg2:'#383C4A', widgetBg:'rgba(15,18,24,0.6)', accent:'#F4D03F', glow:'#F9E79F', text:'#FFF'},
-    'elsa':      {bg1:'#1B4B6E', bg2:'#8BBBD9', widgetBg:'rgba(15,35,55,0.45)', accent:'#87CEFA', glow:'#F0F8FF', text:'#FFF'}
-};
+// --- Colors: picked from the wallpaper automatically (see extractPalette); this is the starting look ---
+const DEFAULT_PALETTE = { bg1: '#2D5A46', bg2: '#509F8C', widgetBg: 'rgba(0,0,0,0.25)', accent: '#A5C271', glow: '#E2F3B9', text: '#FFF' };
 
-function applyPalette(palette, activeName = '') {
+function applyPalette(palette) {
     const root = document.documentElement;
-    const bg1 = palette.bg1 || '#2D5A46';
-    const bg2 = palette.bg2 || '#509F8C';
+    const bg1 = palette.bg1 || DEFAULT_PALETTE.bg1;
+    const bg2 = palette.bg2 || DEFAULT_PALETTE.bg2;
     root.style.setProperty('--bg-color-1', bg1);
     root.style.setProperty('--bg-color-2', bg2);
-    root.style.setProperty('--widget-bg', palette.widgetBg || 'rgba(0,0,0,0.25)');
-    root.style.setProperty('--accent-color', palette.accent || '#A5C271');
-    root.style.setProperty('--glow-color', palette.glow || '#E2F3B9');
+    root.style.setProperty('--widget-bg', palette.widgetBg || DEFAULT_PALETTE.widgetBg);
+    root.style.setProperty('--accent-color', palette.accent || DEFAULT_PALETTE.accent);
+    root.style.setProperty('--glow-color', palette.glow || DEFAULT_PALETTE.glow);
     root.style.setProperty('--primary-text', palette.text || '#FFF');
-    
     document.body.style.background = `radial-gradient(circle at 50% 30%, rgba(255,255,255,0.08) 0%, transparent 60%), linear-gradient(135deg, ${bg1}, ${bg2})`;
-
-    // Sync HTML color pickers if values are hex
-    const p1 = document.getElementById('bg-color-1-picker');
-    const p2 = document.getElementById('bg-color-2-picker');
-    if (p1 && bg1.startsWith('#')) p1.value = bg1;
-    if (p2 && bg2.startsWith('#')) p2.value = bg2;
-
-    // Update active chip state
-    document.querySelectorAll('.palette-chip').forEach(chip => {
-        const char = chip.getAttribute('data-char');
-        chip.classList.toggle('active', !!(activeName && char === activeName));
-    });
-
-    localStorage.setItem('dashboard-palette', JSON.stringify({ name: activeName, palette }));
+    localStorage.setItem('dashboard-palette', JSON.stringify({ palette }));
 }
 
-// --- WALLPAPER DISPLAY & LOCAL UPLOAD PIPELINE ---
+// --- Wallpaper display ---
+const wpContainer = document.getElementById('character-wallpaper');
+const currentThumb = document.getElementById('current-wp-thumb');
 
 function setWallpaperDisplay(dataUrl) {
     const wpImg = document.getElementById('character-wallpaper-img');
@@ -269,9 +245,24 @@ function setWallpaperDisplay(dataUrl) {
         wpImg.src = dataUrl;
     } else {
         wpImg.classList.remove('loaded');
-        wpImg.src = '';
+        wpImg.removeAttribute('src');
     }
+    if (currentThumb) {
+        currentThumb.style.backgroundImage = dataUrl ? `url("${dataUrl}")` : '';
+        currentThumb.classList.toggle('empty', !dataUrl);
+    }
+    document.getElementById('current-wp')?.classList.toggle('no-image', !dataUrl);
 }
+
+/** 'cover' fills the screen (may crop), 'center' shows the whole image in the middle. */
+function setFitMode(mode) {
+    if (!wpContainer) return;
+    wpContainer.classList.toggle('mode-cover', mode === 'cover');
+    wpContainer.classList.toggle('mode-center', mode !== 'cover');
+    document.querySelectorAll('#current-wp .fit-toggle button').forEach(b => b.classList.toggle('active', b.dataset.fit === mode));
+    localStorage.setItem('wallpaper-fit-mode', mode);
+}
+document.querySelectorAll('#current-wp .fit-toggle button').forEach(b => b.addEventListener('click', () => setFitMode(b.dataset.fit)));
 
 async function handleNewWallpaperFile(file) {
     if (!file || !file.type.startsWith('image/')) {
@@ -285,30 +276,23 @@ async function handleNewWallpaperFile(file) {
     }
 }
 
-// 1. File Input Upload Listener
 const fileInput = document.getElementById('wallpaper-file-input');
 if (fileInput) {
     fileInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files[0]) {
-            handleNewWallpaperFile(e.target.files[0]);
-        }
+        if (e.target.files && e.target.files[0]) handleNewWallpaperFile(e.target.files[0]);
+        e.target.value = '';
     });
 }
 
-// 2. Full-Screen Drag-and-Drop Listeners
+// Drag an image from File Explorer onto the screen
 const dropOverlay = document.getElementById('drag-drop-overlay');
 let dragCounter = 0;
-
 window.addEventListener('dragenter', (e) => {
     e.preventDefault();
     dragCounter++;
     if (dropOverlay) dropOverlay.classList.add('active');
 });
-
-window.addEventListener('dragover', (e) => {
-    e.preventDefault();
-});
-
+window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('dragleave', (e) => {
     e.preventDefault();
     dragCounter--;
@@ -317,17 +301,13 @@ window.addEventListener('dragleave', (e) => {
         if (dropOverlay) dropOverlay.classList.remove('active');
     }
 });
-
 window.addEventListener('drop', (e) => {
     e.preventDefault();
     dragCounter = 0;
     if (dropOverlay) dropOverlay.classList.remove('active');
-    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
-        handleNewWallpaperFile(e.dataTransfer.files[0]);
-    }
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) handleNewWallpaperFile(e.dataTransfer.files[0]);
 });
 
-// 3. Clear Wallpaper Button
 const clearBtn = document.getElementById('clear-wallpaper-btn');
 if (clearBtn) {
     clearBtn.addEventListener('click', async () => {
@@ -336,61 +316,197 @@ if (clearBtn) {
     });
 }
 
-// 4. Fit Mode Toggle Button (Center Character Art vs Full Cover)
-const toggleFitBtn = document.getElementById('toggle-fit-btn');
-const fitLabel = document.getElementById('fit-label');
-const wpContainer = document.getElementById('character-wallpaper');
-
-function setFitMode(mode) {
-    if (!wpContainer) return;
-    if (mode === 'cover') {
-        wpContainer.classList.remove('mode-center');
-        wpContainer.classList.add('mode-cover');
-        if (fitLabel) fitLabel.textContent = 'Center art';
-    } else {
-        wpContainer.classList.remove('mode-cover');
-        wpContainer.classList.add('mode-center');
-        if (fitLabel) fitLabel.textContent = 'Fill screen';
-    }
-    localStorage.setItem('wallpaper-fit-mode', mode);
-}
-
-if (toggleFitBtn) {
-    toggleFitBtn.addEventListener('click', () => {
-        const isCurrentlyCenter = wpContainer?.classList.contains('mode-center');
-        setFitMode(isCurrentlyCenter ? 'cover' : 'center');
-    });
-}
-
-// 5. Preset Palette Chips Click Listeners
-document.querySelectorAll('.palette-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-        const char = chip.getAttribute('data-char');
-        if (CHARACTER_PALETTES[char]) {
-            applyPalette(CHARACTER_PALETTES[char], char);
-        }
-    });
-});
-
-// 6. Live Color Pickers Listeners
-const color1Picker = document.getElementById('bg-color-1-picker');
-const color2Picker = document.getElementById('bg-color-2-picker');
-
-function updateCustomColors() {
-    const c1 = color1Picker ? color1Picker.value : '#2D5A46';
-    const c2 = color2Picker ? color2Picker.value : '#509F8C';
-    const customPalette = {
-        bg1: c1, bg2: c2,
-        widgetBg: 'rgba(0,0,0,0.25)',
-        accent: c2,
-        glow: c1,
-        text: '#FFF'
+// --- Built-in wallpapers: drawn at the screen's own resolution, so they are always sharp ---
+function seededRandom(seed) {
+    return () => {
+        seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
-    applyPalette(customPalette, '');
 }
 
-if (color1Picker) color1Picker.addEventListener('input', updateCustomColors);
-if (color2Picker) color2Picker.addEventListener('input', updateCustomColors);
+function vGradient(ctx, h, stops, y0 = 0, y1 = h) {
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    stops.forEach(([at, c]) => g.addColorStop(at, c));
+    return g;
+}
+
+function drawStars(ctx, w, h, rnd, count, maxY = 1) {
+    const s = w / 1920;
+    for (let i = 0; i < count; i++) {
+        const r = (rnd() < 0.92 ? 0.6 + rnd() * 0.8 : 1.5 + rnd() * 1.2) * s;
+        ctx.globalAlpha = 0.35 + rnd() * 0.65;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(rnd() * w, rnd() * h * maxY, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+}
+
+/** A soft ridge line: sum of sines plus a little noise, filled down to the bottom. */
+function drawRidge(ctx, w, h, rnd, baseY, amp, color, freqs = [1.3, 3.1, 7.7]) {
+    const phases = freqs.map(() => rnd() * Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let x = 0; x <= w; x += Math.max(2, w / 480)) {
+        let y = 0;
+        freqs.forEach((f, i) => { y += Math.sin((x / w) * Math.PI * 2 * f + phases[i]) / (i + 1); });
+        ctx.lineTo(x, baseY + y * amp);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+}
+
+const BUILTIN_WALLPAPERS = [
+    {
+        id: 'hills', name: 'Green hills',
+        draw(ctx, w, h, rnd) {
+            ctx.fillStyle = vGradient(ctx, h, [[0, '#cfe8c8'], [0.45, '#8fc79a'], [1, '#2d5a46']]);
+            ctx.fillRect(0, 0, w, h);
+            const sun = ctx.createRadialGradient(w * 0.72, h * 0.28, 0, w * 0.72, h * 0.28, h * 0.35);
+            sun.addColorStop(0, 'rgba(255,250,220,0.9)');
+            sun.addColorStop(1, 'rgba(255,250,220,0)');
+            ctx.fillStyle = sun;
+            ctx.fillRect(0, 0, w, h);
+            const layers = ['#a9d3a4', '#86bd8a', '#63a274', '#46865e', '#2f6a4a', '#1f4d37'];
+            layers.forEach((c, i) => drawRidge(ctx, w, h, rnd, h * (0.45 + i * 0.09), h * (0.06 - i * 0.004), c));
+        },
+    },
+    {
+        id: 'sunset', name: 'Sunset',
+        draw(ctx, w, h, rnd) {
+            ctx.fillStyle = vGradient(ctx, h, [[0, '#2b1055'], [0.45, '#b33c6e'], [0.7, '#f28f5c'], [1, '#fcd29f']]);
+            ctx.fillRect(0, 0, w, h);
+            const sun = ctx.createRadialGradient(w * 0.5, h * 0.66, 0, w * 0.5, h * 0.66, h * 0.4);
+            sun.addColorStop(0, 'rgba(255,236,190,1)');
+            sun.addColorStop(0.18, 'rgba(255,214,150,0.95)');
+            sun.addColorStop(0.2, 'rgba(255,190,130,0.45)');
+            sun.addColorStop(1, 'rgba(255,160,120,0)');
+            ctx.fillStyle = sun;
+            ctx.fillRect(0, 0, w, h);
+            ['#8a3b6b', '#5e2a5e', '#3b1c4a', '#221233'].forEach((c, i) =>
+                drawRidge(ctx, w, h, rnd, h * (0.62 + i * 0.08), h * (0.07 - i * 0.012), c, [1.1, 2.9, 9.5]));
+        },
+    },
+    {
+        id: 'ocean', name: 'Ocean',
+        draw(ctx, w, h, rnd) {
+            ctx.fillStyle = vGradient(ctx, h, [[0, '#9fd3f7'], [0.5, '#dff1fb'], [0.52, '#3f8fc0'], [1, '#0b3a5c']]);
+            ctx.fillRect(0, 0, w, h);
+            const blues = ['#5aa7d4', '#468fc0', '#3378aa', '#236290', '#154c75', '#0b3a5c'];
+            blues.forEach((c, i) => drawRidge(ctx, w, h, rnd, h * (0.55 + i * 0.075), h * (0.008 + i * 0.006), c, [4, 9, 17]));
+        },
+    },
+    {
+        id: 'aurora', name: 'Aurora',
+        draw(ctx, w, h, rnd) {
+            ctx.fillStyle = vGradient(ctx, h, [[0, '#040716'], [0.6, '#0a1d33'], [1, '#0d2e3a']]);
+            ctx.fillRect(0, 0, w, h);
+            drawStars(ctx, w, h, rnd, Math.round(420 * (w * h) / (1920 * 1080)), 0.8);
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.filter = `blur(${Math.round(28 * w / 1920)}px)`;
+            [['rgba(80,255,170,', 0.3], ['rgba(60,200,255,', 0.4], ['rgba(170,110,255,', 0.26]].forEach(([c, y0]) => {
+                const p = rnd() * Math.PI * 2;
+                const f = 1 + rnd() * 1.5;
+                const top = x => h * y0 + Math.sin((x / w) * Math.PI * 2 * f + p) * h * 0.07;
+                const g = ctx.createLinearGradient(0, h * (y0 - 0.1), 0, h * (y0 + 0.35));
+                g.addColorStop(0, `${c}0)`);
+                g.addColorStop(0.25, `${c}0.55)`);
+                g.addColorStop(1, `${c}0)`);
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                for (let x = 0; x <= w; x += w / 240) ctx.lineTo(x, top(x));
+                for (let x = w; x >= 0; x -= w / 240) ctx.lineTo(x, top(x) + h * 0.3);
+                ctx.closePath();
+                ctx.fill();
+            });
+            ctx.filter = 'none';
+            ctx.globalCompositeOperation = 'source-over';
+            drawRidge(ctx, w, h, rnd, h * 0.88, h * 0.03, '#030a12', [2, 6, 13]);
+        },
+    },
+    {
+        id: 'night', name: 'Starry night',
+        draw(ctx, w, h, rnd) {
+            ctx.fillStyle = vGradient(ctx, h, [[0, '#0f0c29'], [0.55, '#302b63'], [1, '#24243e']]);
+            ctx.fillRect(0, 0, w, h);
+            drawStars(ctx, w, h, rnd, Math.round(900 * (w * h) / (1920 * 1080)));
+            const mx = w * 0.78, my = h * 0.24, mr = h * 0.07;
+            const glow = ctx.createRadialGradient(mx, my, mr, mx, my, mr * 5);
+            glow.addColorStop(0, 'rgba(255,248,220,0.35)');
+            glow.addColorStop(1, 'rgba(255,248,220,0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#fbf3d5';
+            ctx.beginPath();
+            ctx.arc(mx, my, mr, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(15,12,41,0.9)';
+            ctx.beginPath();
+            ctx.arc(mx + mr * 0.45, my - mr * 0.2, mr * 0.92, 0, Math.PI * 2);
+            ctx.fill();
+        },
+    },
+    {
+        id: 'blossom', name: 'Blossom',
+        draw(ctx, w, h, rnd) {
+            ctx.fillStyle = vGradient(ctx, h, [[0, '#ffe3ec'], [0.5, '#f7a8c4'], [1, '#b8578a']]);
+            ctx.fillRect(0, 0, w, h);
+            ctx.globalCompositeOperation = 'lighter';
+            const s = w / 1920;
+            for (let i = 0; i < 70; i++) {
+                const r = (20 + rnd() * 120) * s;
+                const x = rnd() * w, y = rnd() * h;
+                const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+                g.addColorStop(0, `rgba(255,255,255,${0.08 + rnd() * 0.16})`);
+                g.addColorStop(0.7, `rgba(255,220,235,${0.05 + rnd() * 0.08})`);
+                g.addColorStop(1, 'rgba(255,220,235,0)');
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalCompositeOperation = 'source-over';
+        },
+    },
+];
+
+function renderBuiltin(item, w, h) {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    item.draw(canvas.getContext('2d'), w, h, seededRandom(item.id.length * 7919 + item.id.charCodeAt(0)));
+    return canvas;
+}
+
+async function applyBuiltin(item) {
+    const dpr = window.devicePixelRatio || 1;
+    let w = Math.round(screen.width * dpr), h = Math.round(screen.height * dpr);
+    if (w > 3840) { h = Math.round(h * 3840 / w); w = 3840; }
+    const canvas = renderBuiltin(item, w, h);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.93));
+    await applyWallpaperBlob(blob, 'cover', { quiet: true });
+    showToast(`${item.name} wallpaper applied`);
+}
+
+const builtinGrid = document.getElementById('builtin-grid');
+if (builtinGrid && MODE !== 'wallpaper') {
+    const uploadTile = builtinGrid.querySelector('.builtin-upload');
+    for (const item of BUILTIN_WALLPAPERS) {
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'builtin-tile';
+        tile.title = item.name;
+        tile.setAttribute('aria-label', `${item.name} wallpaper`);
+        tile.style.backgroundImage = `url("${renderBuiltin(item, 192, 120).toDataURL('image/jpeg', 0.85)}")`;
+        tile.addEventListener('click', () => applyBuiltin(item));
+        builtinGrid.insertBefore(tile, uploadTile);
+    }
+}
 
 // 7. Wallpaper search (runs in the desktop app)
 const wpForm = document.getElementById('wp-search-form');
@@ -614,8 +730,11 @@ function extractPalette(bitmap) {
     };
 }
 
-/** Shows an image as the wallpaper, saves it, picks fill mode from its shape and matches colors to it. */
-async function applyWallpaperBlob(sourceBlob) {
+/**
+ * Shows an image as the wallpaper, saves it and matches the colors to it.
+ * fit: 'cover' (fill screen), 'center', or 'auto' (fill for wide images, center tall ones).
+ */
+async function applyWallpaperBlob(sourceBlob, fit = 'auto', { quiet = false } = {}) {
     const { blob, bitmap } = await prepareImage(sourceBlob);
     const dataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -627,10 +746,11 @@ async function applyWallpaperBlob(sourceBlob) {
     setWallpaperDisplay(dataUrl);
     await WallpaperDB.save(dataUrl);
     const ratio = bitmap.width / bitmap.height;
-    setFitMode(ratio >= 1.3 ? 'cover' : 'center');
-    applyPalette(extractPalette(bitmap), '');
+    setFitMode(fit === 'auto' ? (ratio >= 1.3 ? 'cover' : 'center') : fit);
+    applyPalette(extractPalette(bitmap));
     const small = bitmap.width < 1000;
     bitmap.close?.();
+    if (quiet) return;
     showToast(small
         ? 'Wallpaper applied. It is a small image, so it may look blurry; try opening the full-size version.'
         : 'Wallpaper applied. Colors were matched to the image.');
@@ -643,7 +763,7 @@ async function applyRemoteWallpaper(item, card) {
     try {
         const res = await fetch(`/api/image?url=${encodeURIComponent(item.full)}`);
         if (!res.ok) throw new Error('Could not download that image');
-        await applyWallpaperBlob(await res.blob());
+        await applyWallpaperBlob(await res.blob(), wpFit);
         wpModal.hidden = true;
     } catch (e) {
         card.classList.remove('loading');
@@ -663,12 +783,19 @@ if (wpForm) {
 wpMore.addEventListener('click', () => runWallpaperSearch(wpCurrentQuery, wpPage + 1));
 wpFilters.forEach(btn => btn.addEventListener('click', () => { wpShape = btn.dataset.shape; renderResults(); }));
 
+// "Show as" in the results: how the picked image will be shown
+let wpFit = 'auto';
+document.querySelectorAll('#wp-fit-toggle button').forEach(b => b.addEventListener('click', () => {
+    wpFit = b.dataset.fit;
+    document.querySelectorAll('#wp-fit-toggle button').forEach(x => x.classList.toggle('active', x === b));
+}));
+
 // "Search the whole web": a browser window where any image can be right-clicked -> Set as wallpaper
 if (IS_APP && window.desktop) {
     wpWeb.addEventListener('click', () => window.desktop.openWebSearch(wpCurrentQuery, 'google'));
     window.desktop.onApplyImage(async ({ bytes, type }) => {
         try {
-            await applyWallpaperBlob(new Blob([bytes], { type }));
+            await applyWallpaperBlob(new Blob([bytes], { type }), wpFit);
             wpModal.hidden = true;
         } catch (e) {
             showToast("Couldn't use that image");
@@ -683,26 +810,23 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !wpModal
 
 // --- INITIALIZATION ON STARTUP ---
 async function initDashboardTheme() {
-    // 1. Restore fit mode
-    const savedFit = localStorage.getItem('wallpaper-fit-mode') || 'center';
-    setFitMode(savedFit);
+    setFitMode(localStorage.getItem('wallpaper-fit-mode') || 'cover');
 
-    // 2. Restore color palette
-    const savedPaletteData = localStorage.getItem('dashboard-palette');
-    if (savedPaletteData) {
-        try {
-            const parsed = JSON.parse(savedPaletteData);
-            applyPalette(parsed.palette, parsed.name);
-        } catch(e) {
-            applyPalette(CHARACTER_PALETTES['buttercup'], 'buttercup');
-        }
-    } else {
-        applyPalette(CHARACTER_PALETTES['buttercup'], 'buttercup');
-    }
+    let palette = DEFAULT_PALETTE;
+    try { palette = JSON.parse(localStorage.getItem('dashboard-palette')).palette || DEFAULT_PALETTE; } catch (e) { /* first run */ }
+    applyPalette(palette);
 
-    // 3. Restore the uploaded wallpaper from IndexedDB (no image = plain gradient)
     const savedWp = await WallpaperDB.load();
-    if (savedWp) setWallpaperDisplay(savedWp);
+    if (savedWp) {
+        setWallpaperDisplay(savedWp);
+    } else {
+        setWallpaperDisplay('');
+        // First run: start with a built-in wallpaper instead of a plain color
+        if (MODE !== 'wallpaper' && !localStorage.getItem('wallpaper-initialized')) {
+            localStorage.setItem('wallpaper-initialized', '1');
+            await applyBuiltin(BUILTIN_WALLPAPERS[0]).catch(() => {});
+        }
+    }
 }
 
 initDashboardTheme();
@@ -727,72 +851,396 @@ function updateTimeAndDate() {
 }
 updateTimeAndDate();
 
-// --- Alarm: stored as 24h "HH:MM", rings once when the time is reached ---
+const pad2 = n => String(n).padStart(2, '0');
+const localDay = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+function format12(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return `${h % 12 || 12}:${pad2(m)} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+
+/** Runs fn on a single click only, so a double-click can still enter widget edit mode. */
+function onSingleClick(el, fn) {
+    let timer = null;
+    el.addEventListener('click', (e) => {
+        if (e.detail > 1 || e.target.closest('.close-btn') || el.closest('.edit-mode')) { clearTimeout(timer); return; }
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(e), 260);
+    });
+    el.addEventListener('dblclick', () => clearTimeout(timer));
+}
+// --- Alarms ---
 const alarmWidget = document.getElementById('alarm-widget');
 const alarmTimeText = document.getElementById('alarm-time');
 const alarmInput = document.getElementById('alarm-input');
-let savedAlarm = localStorage.getItem('dashboard-alarm') || '';
-let lastRungMinute = '';
 
-function formatAlarm(value) {
-    if (!value) return 'Off';
-    const [h, m] = value.split(':').map(Number);
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+if (!IS_APP) {
+    // In a plain browser: one simple alarm that rings while the page is open
+    let savedAlarm = localStorage.getItem('dashboard-alarm') || '';
+    let lastRungMinute = '';
+
+    const setAlarm = (value) => {
+        savedAlarm = value;
+        if (value) localStorage.setItem('dashboard-alarm', value);
+        else localStorage.removeItem('dashboard-alarm');
+        alarmTimeText.innerText = value ? format12(value) : 'Off';
+        alarmWidget.classList.toggle('alarm-on', !!value);
+    };
+
+    setInterval(() => {
+        if (!savedAlarm) return;
+        const now = new Date();
+        const current = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+        if (current === savedAlarm && lastRungMinute !== current) {
+            lastRungMinute = current;
+            alarmWidget.classList.add('alarm-ringing');
+            const stop = window.AlarmSound.play('chime', { loop: true });
+            setTimeout(() => { stop(); alarmWidget.classList.remove('alarm-ringing'); }, 30000);
+        }
+    }, 5000);
+
+    alarmWidget.addEventListener('click', () => {
+        alarmInput.value = savedAlarm || '07:00';
+        if (alarmInput.showPicker) alarmInput.showPicker(); else alarmInput.click();
+    });
+    alarmWidget.addEventListener('contextmenu', (e) => { e.preventDefault(); setAlarm(''); });
+    alarmInput.addEventListener('change', () => setAlarm(alarmInput.value));
+    setAlarm(savedAlarm);
 }
 
-function setAlarm(value) {
-    savedAlarm = value;
-    if (value) localStorage.setItem('dashboard-alarm', value);
-    else localStorage.removeItem('dashboard-alarm');
-    alarmTimeText.innerText = formatAlarm(value);
-    alarmWidget.classList.toggle('alarm-on', !!value);
-    if (value && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+// In the desktop app the app itself keeps the alarms and rings them (see src/main/alarms.js)
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const alarmsModal = document.getElementById('alarms-modal');
+const alarmForm = document.getElementById('alarm-form');
+const alarmList = document.getElementById('alarm-list');
+const afTime = document.getElementById('af-time');
+const afDate = document.getElementById('af-date');
+const afWhen = document.getElementById('af-when');
+const afWhenPreview = document.getElementById('af-when-preview');
+const afLabel = document.getElementById('af-label');
+const afSound = document.getElementById('af-sound');
+const afDays = document.querySelectorAll('#af-days button');
+let alarmsCache = [];
+let editingAlarmId = null;
+let customSound = null;       // { sound, soundName } picked for the alarm being edited
+let stopPreview = null;
+
+function daysSummary(days) {
+    if (!days.length) return 'Once';
+    if (days.length === 7) return 'Every day';
+    const key = [...days].sort().join('');
+    if (key === '12345') return 'Weekdays';
+    if (key === '06') return 'Weekends';
+    return [1, 2, 3, 4, 5, 6, 0].filter(d => days.includes(d)).map(d => DAY_NAMES[d]).join(', ');
 }
 
-function ringAlarm() {
-    alarmWidget.classList.add('alarm-ringing');
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        [0, 0.35, 0.7].forEach(delay => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.frequency.value = 880;
-            gain.gain.setValueAtTime(0.2, ctx.currentTime + delay);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
-            osc.connect(gain).connect(ctx.destination);
-            osc.start(ctx.currentTime + delay);
-            osc.stop(ctx.currentTime + delay + 0.3);
-        });
-    } catch (e) { /* audio blocked until the page gets a click */ }
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Alarm', { body: formatAlarm(savedAlarm) });
+/** "Today", "Tomorrow" or "Fri, 25 Sep" for a 'YYYY-MM-DD' date */
+function friendlyDate(ymd) {
+    const [y, m, d] = ymd.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const today = localDay(new Date());
+    if (ymd === today) return 'Today';
+    if (ymd === localDay(new Date(Date.now() + 86400000))) return 'Tomorrow';
+    return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', ...(y !== new Date().getFullYear() ? { year: 'numeric' } : {}) });
+}
+
+function repeatLabel(a) {
+    return a.days.length ? daysSummary(a.days) : `Once${a.date ? `, ${friendlyDate(a.date)}` : ''}`;
+}
+
+function soundLabel(a) {
+    return a.sound.startsWith('file:') ? a.soundName || 'Custom sound' : window.AlarmSound.LABELS[a.sound] || 'Chime';
+}
+
+async function refreshAlarms() {
+    if (!IS_APP || !window.desktop) return;
+    const { alarms, next } = await window.desktop.getAlarms();
+    alarmsCache = alarms;
+
+    // Widget: next alarm, e.g. "7:30 AM" with "Tue" underneath
+    if (next) {
+        const at = new Date(next.at);
+        const today = localDay(new Date());
+        const tomorrow = localDay(new Date(Date.now() + 86400000));
+        const daysAway = (at - new Date()) / 86400000;
+        const when = localDay(at) === today ? '' : localDay(at) === tomorrow ? 'Tomorrow'
+            : daysAway < 6 ? DAY_NAMES[at.getDay()] : friendlyDate(localDay(at));
+        alarmTimeText.innerHTML = '';
+        alarmTimeText.append(format12(`${pad2(at.getHours())}:${pad2(at.getMinutes())}`));
+        if (when || next.snoozed) {
+            const small = document.createElement('small');
+            small.className = 'alarm-when';
+            small.textContent = next.snoozed ? 'Snoozed' : when;
+            alarmTimeText.append(small);
+        }
+        alarmWidget.classList.add('alarm-on');
+        document.getElementById('alarms-next').textContent =
+            `Next: ${at.toLocaleString(undefined, { weekday: 'long', hour: 'numeric', minute: '2-digit' })}${next.label ? ` (${next.label})` : ''}`;
+    } else {
+        alarmTimeText.textContent = 'Off';
+        alarmWidget.classList.remove('alarm-on');
+        document.getElementById('alarms-next').textContent = alarms.length ? 'All alarms are off' : 'No alarms yet';
     }
-    setTimeout(() => alarmWidget.classList.remove('alarm-ringing'), 15000);
+    if (!alarmsModal.hidden) renderAlarmList();
 }
 
-function checkAlarm() {
-    // In the app the wallpaper window rings, so the editor stays quiet (no double alarms)
-    if (!savedAlarm || MODE === 'editor') return;
+function renderAlarmList() {
+    alarmList.innerHTML = '';
+    if (!alarmsCache.length) {
+        const empty = document.createElement('p');
+        empty.className = 'panel-empty';
+        empty.textContent = 'No alarms yet. Press "Add alarm" to create one.';
+        alarmList.appendChild(empty);
+        return;
+    }
+    const sorted = [...alarmsCache].sort((a, b) => a.time.localeCompare(b.time));
+    for (const a of sorted) {
+        const row = document.createElement('div');
+        row.className = 'panel-row' + (a.enabled ? '' : ' is-off');
+
+        const main = document.createElement('button');
+        main.type = 'button';
+        main.className = 'panel-row-main';
+        main.title = 'Edit';
+        const t = document.createElement('span');
+        t.className = 'alarm-row-time';
+        t.textContent = format12(a.time);
+        const info = document.createElement('span');
+        info.className = 'panel-row-info';
+        const l1 = document.createElement('b');
+        l1.textContent = a.label || 'Alarm';
+        const l2 = document.createElement('small');
+        l2.textContent = `${repeatLabel(a)} · ${soundLabel(a)}`;
+        info.append(l1, l2);
+        main.append(t, info);
+        main.addEventListener('click', () => openAlarmForm(a));
+
+        const toggle = document.createElement('label');
+        toggle.className = 'switch';
+        toggle.title = a.enabled ? 'Turn off' : 'Turn on';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = a.enabled;
+        cb.setAttribute('aria-label', `${a.label || 'Alarm'} at ${format12(a.time)}`);
+        cb.addEventListener('change', () => saveAlarmList(alarmsCache.map(x => x.id === a.id ? { ...x, enabled: cb.checked } : x)));
+        const knob = document.createElement('span');
+        toggle.append(cb, knob);
+
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'icon-only-btn';
+        del.setAttribute('aria-label', 'Delete alarm');
+        del.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+        del.addEventListener('click', () => saveAlarmList(alarmsCache.filter(x => x.id !== a.id)));
+
+        row.append(main, toggle, del);
+        alarmList.appendChild(row);
+    }
+}
+
+async function saveAlarmList(list) {
+    alarmsCache = await window.desktop.saveAlarms(list);
+    await refreshAlarms();
+    renderAlarmList();
+}
+
+function fillSoundOptions(selected) {
+    afSound.innerHTML = '';
+    for (const key of window.AlarmSound.TONES) {
+        afSound.add(new Option(window.AlarmSound.LABELS[key], key, false, key === selected));
+    }
+    if (customSound) afSound.add(new Option(customSound.soundName, customSound.sound, false, customSound.sound === selected));
+}
+
+/** The next day a time will come round: today if it's still ahead, otherwise tomorrow. */
+function nextDateFor(time) {
+    const [h, m] = time.split(':').map(Number);
     const now = new Date();
-    const current = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    if (current === savedAlarm && lastRungMinute !== current) {
-        lastRungMinute = current;
-        ringAlarm();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+    return localDay(today > now ? today : new Date(today.getTime() + 86400000));
+}
+
+function selectedDays() {
+    return [...afDays].filter(b => b.classList.contains('active')).map(b => Number(b.dataset.day));
+}
+
+// The date only matters for alarms that ring once
+function syncDateField() {
+    document.getElementById('af-date-field').hidden = selectedDays().length > 0;
+}
+
+function openAlarmForm(alarm) {
+    editingAlarmId = alarm ? alarm.id : null;
+    customSound = alarm && alarm.sound.startsWith('file:') ? { sound: alarm.sound, soundName: alarm.soundName } : null;
+    const inAnHour = new Date(Date.now() + 3600000);
+    afTime.value = alarm ? alarm.time : `${pad2(inAnHour.getHours())}:00`;
+    afDate.value = alarm && alarm.date ? alarm.date : nextDateFor(afTime.value);
+    afLabel.value = alarm ? alarm.label : '';
+    afWhen.value = '';
+    afWhenPreview.textContent = '';
+    afWhenPreview.classList.remove('is-error');
+    const days = alarm ? alarm.days : [];
+    afDays.forEach(b => b.classList.toggle('active', days.includes(Number(b.dataset.day))));
+    syncDateField();
+    fillSoundOptions(alarm ? alarm.sound : 'chime');
+    alarmForm.hidden = false;
+    afWhen.focus();
+}
+
+// Typed "when": fills in the time, date and repeat days, and says how it was understood
+let whenTimer = null;
+async function readTypedWhen() {
+    const text = afWhen.value.trim();
+    afWhenPreview.classList.remove('is-error');
+    if (!text) { afWhenPreview.textContent = ''; return; }
+    const r = await window.desktop.parseWhen(text, 'alarm');
+    if (afWhen.value.trim() !== text) return;  // typed more since
+    if (!r || (!r.start && !r.days)) {
+        afWhenPreview.textContent = 'Not sure what that means. Try "tomorrow 7am", "fri 6:30pm" or "every weekday 7:30".';
+        afWhenPreview.classList.add('is-error');
+        return;
+    }
+    if (r.start) {
+        const at = new Date(r.start);
+        afTime.value = `${pad2(at.getHours())}:${pad2(at.getMinutes())}`;
+        afDate.value = localDay(at);
+    }
+    afDays.forEach(b => b.classList.toggle('active', !!r.days && r.days.includes(Number(b.dataset.day))));
+    syncDateField();
+    const time = format12(afTime.value);
+    afWhenPreview.textContent = r.days
+        ? `${daysSummary(r.days)} at ${time}`
+        : `${friendlyDate(afDate.value)} at ${time}`;
+}
+
+function closeAlarmForm() {
+    stopSoundPreview();
+    alarmForm.hidden = true;
+    editingAlarmId = null;
+}
+
+function stopSoundPreview() {
+    if (stopPreview) { stopPreview(); stopPreview = null; }
+    document.getElementById('af-preview').innerHTML = '<i class="fa-solid fa-play"></i> Preview';
+}
+
+if (IS_APP && window.desktop) {
+    afDays.forEach(b => b.addEventListener('click', () => { b.classList.toggle('active'); syncDateField(); }));
+    afWhen.addEventListener('input', () => { clearTimeout(whenTimer); whenTimer = setTimeout(readTypedWhen, 150); });
+    afWhen.addEventListener('keydown', (e) => {
+        // Enter in the "when" box reads it instead of saving straight away
+        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(whenTimer); readTypedWhen(); }
+    });
+    afTime.addEventListener('change', () => { if (!afWhen.value.trim()) afDate.value = nextDateFor(afTime.value); });
+    document.getElementById('alarm-add-btn').addEventListener('click', () => openAlarmForm(null));
+    document.getElementById('af-cancel').addEventListener('click', closeAlarmForm);
+    document.getElementById('af-pick-sound').addEventListener('click', async () => {
+        const picked = await window.desktop.pickAlarmSound();
+        if (!picked) return;
+        if (picked.error) { showToast(picked.error); return; }
+        customSound = picked;
+        fillSoundOptions(picked.sound);
+    });
+    document.getElementById('af-preview').addEventListener('click', () => {
+        if (stopPreview) { stopSoundPreview(); return; }
+        stopPreview = window.AlarmSound.play(afSound.value, { loop: true });
+        document.getElementById('af-preview').innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
+        setTimeout(stopSoundPreview, 8000);
+    });
+    afSound.addEventListener('change', () => { if (stopPreview) stopSoundPreview(); });
+    alarmForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const chosenSound = afSound.value;
+        const days = selectedDays();
+        if (!days.length) {
+            const [y, mo, d] = (afDate.value || nextDateFor(afTime.value)).split('-').map(Number);
+            const [h, m] = afTime.value.split(':').map(Number);
+            if (new Date(y, mo - 1, d, h, m) <= new Date()) {
+                showToast('That time has already passed. Pick a later time or date.');
+                return;
+            }
+        }
+        const alarm = {
+            id: editingAlarmId || undefined,
+            time: afTime.value,
+            date: days.length ? '' : (afDate.value || nextDateFor(afTime.value)),
+            label: afLabel.value.trim(),
+            days,
+            enabled: true,
+            sound: chosenSound,
+            soundName: chosenSound.startsWith('file:') && customSound ? customSound.soundName : '',
+        };
+        const list = editingAlarmId
+            ? alarmsCache.map(a => a.id === editingAlarmId ? { ...alarm, id: a.id } : a)
+            : [...alarmsCache, alarm];
+        closeAlarmForm();
+        await saveAlarmList(list);
+        const whenText = alarm.days.length ? daysSummary(alarm.days).toLowerCase() : friendlyDate(alarm.date);
+        showToast(`Alarm set for ${format12(alarm.time)}, ${/^(Today|Tomorrow)$/.test(whenText) ? whenText.toLowerCase() : whenText}`);
+    });
+
+    window.desktop.onAlarmsChanged(refreshAlarms);
+    setInterval(refreshAlarms, 30000);
+
+    // Move an alarm set in an earlier version (stored only in this page) into the app
+    (async () => {
+        const old = localStorage.getItem('dashboard-alarm');
+        await refreshAlarms();
+        if (old && MODE === 'editor' && !alarmsCache.length) {
+            await saveAlarmList([{ time: old, label: '', days: [], enabled: true, sound: 'chime' }]);
+        }
+        if (old && MODE === 'editor') localStorage.removeItem('dashboard-alarm');
+    })();
+
+    if (MODE === 'editor') {
+        alarmWidget.title = 'Alarms';
+        onSingleClick(alarmWidget, () => openPanel('alarms'));
     }
 }
 
-alarmWidget.addEventListener('click', () => {
-    alarmWidget.classList.remove('alarm-ringing');
-    alarmInput.value = savedAlarm || '07:00';
-    if (alarmInput.showPicker) alarmInput.showPicker(); else alarmInput.click();
+// --- Panels (alarms, calendars, a day's events, event editor) in the editor ---
+const PANELS = '#alarms-modal, #calendars-modal, #day-modal, #event-modal';
+
+function openPanel(name) {
+    const modal = document.getElementById(`${name}-modal`);
+    if (!modal) return;
+    document.querySelectorAll('.wp-modal').forEach(m => { if (m !== modal) m.hidden = true; });
+    modal.hidden = false;
+    if (name === 'alarms') { renderAlarmList(); refreshAlarms(); }
+    if (name === 'calendars') renderCalendarPanel();
+    if (name !== 'event') modal.querySelector('[data-close]').focus();
+}
+
+function closePanel(modal) {
+    if (modal.id === 'alarms-modal') closeAlarmForm();
+    modal.hidden = true;
+    // Closing the event editor goes back to the day it came from
+    if (modal.id === 'event-modal' && eventReturnDay) {
+        const day = eventReturnDay;
+        eventReturnDay = null;
+        openDay(day);
+    }
+}
+
+document.querySelectorAll(PANELS).forEach(modal => {
+    modal.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closePanel(modal)));
+    modal.addEventListener('click', (e) => { if (e.target === modal) closePanel(modal); });
 });
-alarmWidget.addEventListener('contextmenu', (e) => { e.preventDefault(); setAlarm(''); });
-alarmInput.addEventListener('change', () => setAlarm(alarmInput.value));
-setAlarm(savedAlarm);
-setInterval(checkAlarm, 5000);
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll(PANELS).forEach(m => { if (!m.hidden) closePanel(m); });
+});
+
+// --- Calendar ---
+let calendarEvents = [];
+let calendarStatus = [];
+let googleState = null;     // { email, error } when signed in to Google
+let eventReturnDay = null;  // day view to go back to after editing an event
+let calendarsConnected = false;
+let renderedDay = '';
 
 function renderCalendar() {
     const now = new Date();
+    renderedDay = localDay(now);
     document.getElementById('calendar-month').innerText = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][now.getMonth()];
     let startDayIndex = (new Date(now.getFullYear(), now.getMonth(), 1).getDay() || 7) - 1;
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -804,31 +1252,536 @@ function renderCalendar() {
         if (i === now.getDate()) span.classList.add('active-day');
         grid.appendChild(span);
     }
+    markCalendarEvents();
+    renderAgenda();
 }
-renderCalendar();
 
-// Mark days that have events (from the .ics folder chosen in the app's tray menu)
-async function markCalendarEvents() {
-    if (!IS_APP) return;
-    try {
-        const res = await fetch('/api/calendar/events');
-        const events = await res.json();
-        const now = new Date();
-        const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`;
-        const days = document.querySelectorAll('#calendar-grid span:not(:empty)');
-        events.forEach(ev => {
-            if (!ev.start.startsWith(prefix)) return;
-            const day = parseInt(ev.start.slice(8, 10), 10);
-            const cell = days[day - 1];
-            if (!cell) return;
-            cell.classList.add('has-event');
-            cell.title = cell.title ? `${cell.title}\n${ev.title}` : ev.title;
-        });
-    } catch (e) {
-        // No calendar folder; the calendar just shows dates
+function eventTimeLabel(ev) {
+    if (ev.allDay) return 'All day';
+    return new Date(ev.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+// Dots on days with events; hovering (in the editor) lists them
+function markCalendarEvents() {
+    const now = new Date();
+    const prefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-`;
+    const days = document.querySelectorAll('#calendar-grid span:not(:empty)');
+    days.forEach(cell => { cell.classList.remove('has-event'); cell.removeAttribute('title'); cell.style.removeProperty('--event-color'); });
+    for (const ev of calendarEvents) {
+        if (!ev.date.startsWith(prefix)) continue;
+        const cell = days[parseInt(ev.date.slice(8, 10), 10) - 1];
+        if (!cell) continue;
+        if (!cell.classList.contains('has-event')) cell.style.setProperty('--event-color', ev.color);
+        cell.classList.add('has-event');
+        const line = `${eventTimeLabel(ev)}  ${ev.title}`;
+        cell.title = cell.title ? `${cell.title}\n${line}` : line;
     }
 }
-markCalendarEvents();
+
+// "Upcoming" widget: what's left today and the next few days
+function renderAgenda() {
+    const list = document.getElementById('agenda-list');
+    const widget = document.querySelector('[data-id="agenda"]');
+    widget.classList.toggle('agenda-unused', !calendarsConnected);
+    list.innerHTML = '';
+
+    if (!calendarsConnected) {
+        const p = document.createElement('div');
+        p.className = 'agenda-empty';
+        p.textContent = 'Sign in with Google to see and edit your events here.';
+        if (MODE === 'editor') {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'agenda-connect';
+            b.textContent = 'Connect Google Calendar';
+            b.addEventListener('click', () => openPanel('calendars'));
+            p.appendChild(b);
+        }
+        list.appendChild(p);
+        return;
+    }
+
+    const now = new Date();
+    const today = localDay(now);
+    const tomorrow = localDay(new Date(now.getTime() + 86400000));
+    const upcoming = calendarEvents
+        .filter(ev => new Date(ev.end) > now && ev.date <= localDay(new Date(now.getTime() + 14 * 86400000)))
+        .slice(0, 8);
+
+    if (!upcoming.length) {
+        const p = document.createElement('div');
+        p.className = 'agenda-empty';
+        p.textContent = 'Nothing in the next two weeks.';
+        list.appendChild(p);
+        return;
+    }
+
+    let lastDay = '';
+    for (const ev of upcoming) {
+        const day = ev.date < today ? today : ev.date;  // multi-day events that started earlier
+        if (day !== lastDay) {
+            lastDay = day;
+            const h = document.createElement('div');
+            h.className = 'agenda-day';
+            const [y, m, d] = day.split('-').map(Number);
+            h.textContent = day === today ? 'Today' : day === tomorrow ? 'Tomorrow'
+                : new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+            list.appendChild(h);
+        }
+        const item = document.createElement('div');
+        item.className = 'agenda-item';
+        item.style.setProperty('--event-color', ev.color);
+        const t = document.createElement('span');
+        t.className = 'agenda-time';
+        t.textContent = eventTimeLabel(ev);
+        const title = document.createElement('span');
+        title.className = 'agenda-title';
+        title.textContent = ev.title;
+        title.title = `${ev.title} (${ev.calendar})`;
+        item.append(t, title);
+        if (MODE === 'editor') {
+            item.classList.add('is-clickable');
+            item.tabIndex = 0;
+            item.setAttribute('role', 'button');
+            const open = () => (ev.editable ? openEventEditor({ event: ev }) : openDay(ev.date));
+            item.addEventListener('click', open);
+            item.addEventListener('keydown', (e) => { if (e.key === 'Enter') open(); });
+        }
+        list.appendChild(item);
+    }
+}
+
+async function refreshCalendarEvents(force = false) {
+    if (!IS_APP) return;
+    try {
+        const res = await fetch(`/api/calendar/events${force ? '?refresh=1' : ''}`);
+        const data = await res.json();
+        calendarEvents = data.events || [];
+        googleState = data.google || null;
+        calendarsConnected = !!googleState || (data.feeds || []).length > 0 || !!data.folder;
+        calendarStatus = data.feeds || [];
+    } catch (e) {
+        // Keep whatever was shown before
+    }
+    markCalendarEvents();
+    renderAgenda();
+    if (!document.getElementById('calendars-modal').hidden) renderCalendarPanel();
+}
+
+renderCalendar();
+if (IS_APP) {
+    refreshCalendarEvents();
+    setInterval(refreshCalendarEvents, 5 * 60 * 1000);
+    if (window.desktop) window.desktop.onCalendarsChanged(() => refreshCalendarEvents());
+} else {
+    document.querySelector('[data-id="agenda"]').classList.add('agenda-unused');
+    renderAgenda();
+}
+
+// The wallpaper stays open for days: redraw the calendar when the date changes, and keep "Upcoming" current
+setInterval(() => {
+    if (localDay(new Date()) !== renderedDay) renderCalendar();
+    else renderAgenda();
+}, 60000);
+
+// --- Calendars panel ---
+function timeAgo(iso) {
+    const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} min ago`;
+    return `${Math.round(mins / 60)} h ago`;
+}
+
+async function renderCalendarPanel() {
+    if (!window.desktop) return;
+    renderGoogleSection();
+    const { feeds, folder } = await window.desktop.getCalendars();
+    const list = document.getElementById('calendar-list');
+    list.innerHTML = '';
+    if (feeds.length || folder) document.getElementById('other-calendars').open = true;
+    for (const f of feeds) {
+        const status = calendarStatus.find(s => s.id === f.id);
+        const row = document.createElement('div');
+        row.className = 'panel-row';
+        const dot = document.createElement('span');
+        dot.className = 'cal-dot';
+        dot.style.background = f.color;
+        const info = document.createElement('span');
+        info.className = 'panel-row-info';
+        const name = document.createElement('b');
+        name.textContent = f.name;
+        const sub = document.createElement('small');
+        if (status?.error) {
+            sub.className = 'is-error';
+            sub.textContent = status.error;
+        } else {
+            sub.textContent = `${f.host}${status ? ` · updated ${timeAgo(status.updated)}` : ''}`;
+        }
+        info.append(name, sub);
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'panel-small-btn';
+        del.textContent = 'Remove';
+        del.addEventListener('click', async () => {
+            await window.desktop.removeCalendar(f.id);
+            renderCalendarPanel();
+        });
+        row.append(dot, info, del);
+        list.appendChild(row);
+    }
+    document.getElementById('calendar-folder').textContent = folder || 'Not set';
+    document.getElementById('cal-folder-clear').hidden = !folder;
+}
+
+if (IS_APP && window.desktop) {
+    const calForm = document.getElementById('calendar-form');
+    const calError = document.getElementById('cf-error');
+    const calSubmit = document.getElementById('cf-submit');
+    calForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        calError.textContent = '';
+        calSubmit.disabled = true;
+        calSubmit.textContent = 'Checking...';
+        const result = await window.desktop.addCalendar({
+            url: document.getElementById('cf-url').value,
+            name: document.getElementById('cf-name').value,
+        });
+        calSubmit.disabled = false;
+        calSubmit.textContent = 'Connect';
+        if (result.error) {
+            calError.textContent = result.error;
+            return;
+        }
+        calForm.reset();
+        showToast(`Connected "${result.feed.name}"`);
+        await refreshCalendarEvents();
+        renderCalendarPanel();
+    });
+    document.getElementById('cal-folder-btn').addEventListener('click', async () => {
+        if (await window.desktop.chooseCalendarFolder()) renderCalendarPanel();
+    });
+    document.getElementById('cal-folder-clear').addEventListener('click', async () => {
+        await window.desktop.clearCalendarFolder();
+        renderCalendarPanel();
+    });
+
+    if (MODE === 'editor') {
+        // Click a date to see and edit that day; click elsewhere on the calendar for calendar settings
+        onSingleClick(document.querySelector('[data-id="calendar"]'), (e) => {
+            const cell = e.target.closest('#calendar-grid span:not(:empty)');
+            if (cell) {
+                const now = new Date();
+                openDay(localDay(new Date(now.getFullYear(), now.getMonth(), Number(cell.textContent))));
+            } else {
+                openPanel('calendars');
+            }
+        });
+        document.getElementById('editor-alarms-btn').addEventListener('click', () => openPanel('alarms'));
+        document.getElementById('editor-calendars-btn').addEventListener('click', () => openPanel('calendars'));
+        window.desktop.onOpenPanel(openPanel);
+    }
+}
+
+// --- Google Calendar sign-in (Calendars panel) ---
+async function renderGoogleSection() {
+    if (!window.desktop) return;
+    const { configured, account } = await window.desktop.googleStatus();
+    document.getElementById('google-signed-out').hidden = !!account;
+    document.getElementById('google-signed-in').hidden = !account;
+    document.getElementById('google-sign-in').hidden = !configured;
+    document.getElementById('google-not-set-up').hidden = configured;
+    if (!account) return;
+
+    document.getElementById('google-email').textContent = account.email || 'Signed in';
+    const syncError = document.getElementById('google-sync-error');
+    syncError.textContent = googleState?.error || '';
+
+    const box = document.getElementById('google-calendars');
+    const { calendars, error } = await window.desktop.googleCalendars();
+    box.innerHTML = '';
+    if (error) { syncError.textContent = error; return; }
+    for (const c of calendars.filter(x => x.shown)) {
+        const chip = document.createElement('span');
+        chip.className = 'google-cal-chip';
+        const dot = document.createElement('i');
+        dot.style.background = c.color;
+        chip.append(dot, c.name + (c.writable ? '' : ' (view only)'));
+        box.appendChild(chip);
+    }
+}
+
+// --- One day's events ---
+let dayViewDate = null;
+
+function openDay(ymd) {
+    dayViewDate = ymd;
+    const [y, m, d] = ymd.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    document.getElementById('day-title').textContent = date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+    const events = calendarEvents
+        .filter(ev => ev.date === ymd || (ev.allDay && ev.date < ymd && localDay(new Date(new Date(ev.end).getTime() - 1)) >= ymd))
+        .sort((a, b) => (b.allDay - a.allDay) || a.start.localeCompare(b.start));
+    document.getElementById('day-subtitle').textContent =
+        events.length ? `${events.length} event${events.length > 1 ? 's' : ''}` : 'No events';
+    document.getElementById('day-add-btn').hidden = !googleState;
+
+    const list = document.getElementById('day-list');
+    list.innerHTML = '';
+    if (!events.length) {
+        const p = document.createElement('p');
+        p.className = 'panel-empty';
+        p.textContent = googleState ? 'Nothing planned. Press "Add event" to add something.' : 'Nothing planned.';
+        list.appendChild(p);
+    }
+    for (const ev of events) {
+        const row = document.createElement(ev.editable ? 'button' : 'div');
+        if (ev.editable) { row.type = 'button'; row.title = 'Edit event'; }
+        row.className = 'panel-row day-event' + (ev.editable ? ' is-clickable' : '');
+        row.style.setProperty('--event-color', ev.color || 'var(--accent-color)');
+        const time = document.createElement('span');
+        time.className = 'day-event-time';
+        time.textContent = ev.allDay ? 'All day'
+            : `${eventTimeLabel(ev)} – ${new Date(ev.end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+        const info = document.createElement('span');
+        info.className = 'panel-row-info';
+        const t = document.createElement('b');
+        t.textContent = ev.title;
+        const sub = document.createElement('small');
+        sub.textContent = [ev.location, ev.calendar, ev.editable ? '' : 'view only'].filter(Boolean).join(' · ');
+        info.append(t, sub);
+        row.append(time, info);
+        if (ev.editable) row.addEventListener('click', () => openEventEditor({ event: ev, returnDay: ymd }));
+        list.appendChild(row);
+    }
+    if (!googleState) {
+        const p = document.createElement('p');
+        p.className = 'field-hint';
+        p.innerHTML = '';
+        const link = document.createElement('button');
+        link.type = 'button';
+        link.className = 'link-btn';
+        link.textContent = 'Sign in with Google';
+        link.addEventListener('click', () => openPanel('calendars'));
+        p.append(link, ' to add and edit events.');
+        list.appendChild(p);
+    }
+    openPanel('day');
+}
+
+// --- Add / edit an event (Google Calendar) ---
+const eventForm = document.getElementById('event-form');
+const ef = {
+    title: document.getElementById('ef-title'),
+    when: document.getElementById('ef-when'),
+    preview: document.getElementById('ef-when-preview'),
+    date: document.getElementById('ef-date'),
+    start: document.getElementById('ef-start'),
+    end: document.getElementById('ef-end'),
+    allDay: document.getElementById('ef-allday'),
+    location: document.getElementById('ef-location'),
+    calendar: document.getElementById('ef-calendar'),
+    notes: document.getElementById('ef-notes'),
+    error: document.getElementById('ef-error'),
+    del: document.getElementById('ef-delete'),
+    save: document.getElementById('ef-save'),
+};
+let editingEvent = null;
+let deleteArmed = false;
+
+const hhmmOf = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+
+function syncAllDay() {
+    document.querySelectorAll('#event-form .ef-time').forEach(el => { el.hidden = ef.allDay.checked; });
+}
+
+async function openEventEditor({ event = null, date = null, returnDay = null } = {}) {
+    if (!googleState) {
+        showToast('Sign in with Google to add events');
+        openPanel('calendars');
+        return;
+    }
+    const { calendars, error } = await window.desktop.googleCalendars();
+    if (error) { showToast(error); return; }
+    const writable = calendars.filter(c => c.writable);
+    if (!writable.length) { showToast('None of your Google calendars can be edited'); return; }
+
+    editingEvent = event;
+    eventReturnDay = returnDay;
+    deleteArmed = false;
+    ef.error.textContent = '';
+    ef.preview.textContent = '';
+    ef.when.value = '';
+    ef.calendar.innerHTML = '';
+    for (const c of writable) ef.calendar.add(new Option(c.name, c.id));
+
+    if (event) {
+        const s = new Date(event.start), e = new Date(event.end);
+        ef.title.value = event.title === '(No title)' ? '' : event.title;
+        ef.date.value = event.date;
+        ef.allDay.checked = event.allDay;
+        ef.start.value = event.allDay ? '09:00' : hhmmOf(s);
+        ef.end.value = event.allDay ? '10:00' : hhmmOf(e);
+        ef.location.value = event.location || '';
+        ef.notes.value = event.description || '';
+        ef.calendar.value = event.calendarId;
+        ef.calendar.disabled = true;  // moving events between calendars isn't supported here
+        document.getElementById('event-title').textContent = 'Edit event';
+        document.getElementById('event-subtitle').textContent = event.calendar;
+    } else {
+        const next = new Date();
+        next.setMinutes(0, 0, 0);
+        next.setHours(next.getHours() + 1);
+        ef.title.value = '';
+        ef.date.value = date || localDay(next);
+        ef.allDay.checked = false;
+        ef.start.value = hhmmOf(next);
+        ef.end.value = hhmmOf(new Date(next.getTime() + 3600000));
+        ef.location.value = '';
+        ef.notes.value = '';
+        ef.calendar.disabled = false;
+        document.getElementById('event-title').textContent = 'New event';
+        document.getElementById('event-subtitle').textContent = googleState.email || 'Google Calendar';
+    }
+    document.getElementById('ef-recurring-note').hidden = !(event && event.recurring);
+    ef.del.hidden = !event;
+    ef.del.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+    syncAllDay();
+    openPanel('event');
+    ef.title.focus();
+}
+
+let efWhenTimer = null;
+async function readEventWhen() {
+    const text = ef.when.value.trim();
+    ef.preview.classList.remove('is-error');
+    if (!text) { ef.preview.textContent = ''; return; }
+    const r = await window.desktop.parseWhen(text, 'event');
+    if (ef.when.value.trim() !== text) return;
+    if (!r || !r.start) {
+        ef.preview.textContent = 'Not sure what that means. Try "tomorrow 3pm", "fri 10-11am" or "25/12".';
+        ef.preview.classList.add('is-error');
+        return;
+    }
+    const start = new Date(r.start);
+    ef.date.value = localDay(start);
+    const allDay = !r.hasTime || /\ball[- ]?day\b/i.test(text);
+    ef.allDay.checked = allDay;
+    if (!allDay) {
+        ef.start.value = hhmmOf(start);
+        ef.end.value = hhmmOf(r.end ? new Date(r.end) : new Date(start.getTime() + 3600000));
+    }
+    syncAllDay();
+    ef.preview.textContent = allDay
+        ? `${friendlyDate(ef.date.value)}, all day`
+        : `${friendlyDate(ef.date.value)}, ${format12(ef.start.value)} – ${format12(ef.end.value)}`;
+}
+
+if (IS_APP && window.desktop && MODE === 'editor') {
+    const googleError = document.getElementById('google-error');
+    const waiting = document.getElementById('google-waiting');
+    const signInBtn = document.getElementById('google-sign-in');
+
+    signInBtn.addEventListener('click', async () => {
+        googleError.textContent = '';
+        signInBtn.disabled = true;
+        waiting.hidden = false;
+        const result = await window.desktop.googleSignIn();
+        signInBtn.disabled = false;
+        waiting.hidden = true;
+        if (result.error) {
+            if (!/cancelled|restarted/i.test(result.error)) googleError.textContent = result.error;
+            return;
+        }
+        showToast(`Signed in as ${result.account.email || 'your Google account'}`);
+        await refreshCalendarEvents(true);
+        renderCalendarPanel();
+    });
+    document.getElementById('google-cancel').addEventListener('click', () => window.desktop.googleCancelSignIn());
+    document.getElementById('google-sign-out').addEventListener('click', async () => {
+        await window.desktop.googleSignOut();
+        showToast('Signed out of Google');
+        await refreshCalendarEvents();
+        renderCalendarPanel();
+    });
+    document.getElementById('google-add-event').addEventListener('click', () => openEventEditor());
+    document.getElementById('day-add-btn').addEventListener('click', () => openEventEditor({ date: dayViewDate, returnDay: dayViewDate }));
+
+    ef.allDay.addEventListener('change', syncAllDay);
+    ef.when.addEventListener('input', () => { clearTimeout(efWhenTimer); efWhenTimer = setTimeout(readEventWhen, 150); });
+    ef.when.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(efWhenTimer); readEventWhen(); }
+    });
+    // Moving the start keeps the event's length
+    ef.start.addEventListener('change', () => {
+        if (!ef.start.dataset.prev) return;
+        const [ph, pm] = ef.start.dataset.prev.split(':').map(Number);
+        const [sh, sm] = ef.start.value.split(':').map(Number);
+        const [eh, em] = ef.end.value.split(':').map(Number);
+        const shift = (sh * 60 + sm) - (ph * 60 + pm);
+        const endMin = Math.min(23 * 60 + 59, Math.max(0, eh * 60 + em + shift));
+        ef.end.value = `${pad2(Math.floor(endMin / 60))}:${pad2(endMin % 60)}`;
+        ef.start.dataset.prev = ef.start.value;
+    });
+    ef.start.addEventListener('focus', () => { ef.start.dataset.prev = ef.start.value; });
+
+    eventForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        ef.error.textContent = '';
+        const payload = {
+            title: ef.title.value.trim(),
+            location: ef.location.value.trim(),
+            description: ef.notes.value.trim(),
+            allDay: ef.allDay.checked,
+        };
+        if (!payload.title) { ef.error.textContent = 'Give the event a title.'; ef.title.focus(); return; }
+        if (!ef.date.value) { ef.error.textContent = 'Pick a date.'; return; }
+        if (payload.allDay) {
+            payload.startDate = ef.date.value;
+            payload.endDate = ef.date.value;
+        } else {
+            const [y, m, d] = ef.date.value.split('-').map(Number);
+            const [sh, sm] = ef.start.value.split(':').map(Number);
+            const [eh, em] = ef.end.value.split(':').map(Number);
+            const start = new Date(y, m - 1, d, sh, sm);
+            const end = new Date(y, m - 1, d, eh, em);
+            if (end <= start) { ef.error.textContent = 'The end time has to be after the start time.'; return; }
+            payload.start = start.toISOString();
+            payload.end = end.toISOString();
+        }
+
+        ef.save.disabled = true;
+        ef.save.textContent = 'Saving...';
+        const result = editingEvent
+            ? await window.desktop.updateEvent(editingEvent.calendarId, editingEvent.id, payload)
+            : await window.desktop.createEvent(ef.calendar.value, payload);
+        ef.save.disabled = false;
+        ef.save.textContent = 'Save';
+        if (result.error) { ef.error.textContent = result.error; return; }
+
+        showToast(editingEvent ? 'Event updated' : `Added "${payload.title}" to Google Calendar`);
+        await refreshCalendarEvents(true);
+        closePanel(document.getElementById('event-modal'));
+    });
+
+    ef.del.addEventListener('click', async () => {
+        if (!editingEvent) return;
+        // Two presses, so an event isn't deleted by accident
+        if (!deleteArmed) {
+            deleteArmed = true;
+            ef.del.textContent = 'Press again to delete';
+            setTimeout(() => {
+                deleteArmed = false;
+                ef.del.innerHTML = '<i class="fa-solid fa-trash-can"></i> Delete';
+            }, 4000);
+            return;
+        }
+        const result = await window.desktop.deleteEvent(editingEvent.calendarId, editingEvent.id);
+        if (result.error) { ef.error.textContent = result.error; return; }
+        showToast('Event deleted');
+        await refreshCalendarEvents(true);
+        closePanel(document.getElementById('event-modal'));
+    });
+}
 
 async function updateBattery() {
     if ('getBattery' in navigator) {

@@ -1116,3 +1116,457 @@ body.mode-wallpaper #todo-list-container:empty::before {
     white-space: nowrap;
     font-size: 0.8rem !important;
 }
+
+/* ============ Alarms & calendars ============ */
+#alarm-time { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.alarm-when { font-size: 0.66rem; font-weight: 600; opacity: 0.7; }
+
+/* Calendar event dots use the calendar's color */
+.calendar-grid .has-event::after { background: var(--event-color, var(--glow-color)); }
+
+/* Upcoming widget */
+.agenda-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+}
+.agenda-header {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--accent-color);
+}
+.agenda-header i { margin-right: 4px; }
+.agenda-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.agenda-list::-webkit-scrollbar { width: 0; }
+.agenda-day {
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0.65;
+    margin-top: 4px;
+}
+.agenda-day:first-child { margin-top: 0; }
+.agenda-item {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 0.82rem;
+    padding-left: 9px;
+    border-left: 3px solid var(--event-color, var(--accent-color));
+}
+.agenda-time {
+    flex-shrink: 0;
+    min-width: 58px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    opacity: 0.8;
+}
+.agenda-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.agenda-empty {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    line-height: 1.45;
+}
+.agenda-connect {
+    display: block;
+    margin-top: 10px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: none;
+    background: var(--accent-color);
+    color: #111;
+    font-family: var(--base-font);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+/* Without a calendar, the wallpaper doesn't show an empty "Upcoming" box */
+body.mode-wallpaper .agenda-unused,
+body.mode-browser .agenda-unused { display: none !important; }
+
+/* Panels (alarms, calendars) */
+.panel-dialog { width: min(640px, 100%); }
+.panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 24px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.wp-dialog-header h3 i { color: var(--accent-color); margin-right: 6px; }
+.panel-list { display: flex; flex-direction: column; gap: 8px; }
+.panel-empty { font-size: 0.85rem; color: rgba(255, 255, 255, 0.6); padding: 12px 0; }
+.panel-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.panel-row.is-off { opacity: 0.55; }
+.panel-row-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: var(--base-font);
+    text-align: left;
+    cursor: pointer;
+    padding: 0;
+}
+.alarm-row-time { font-size: 1.5rem; font-weight: 700; min-width: 112px; }
+.panel-row-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.panel-row-info b { font-size: 0.9rem; }
+.panel-row-info small {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.panel-row-info small.is-error { color: #ff9a8f; white-space: normal; }
+.cal-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+.icon-only-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+}
+.icon-only-btn:hover { background: rgba(239, 83, 80, 0.3); color: #ff8a80; }
+
+/* Toggle switch */
+.switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; cursor: pointer; }
+.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.switch span {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    transition: background 0.2s ease;
+    pointer-events: none;
+}
+.switch span::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s ease;
+}
+.switch input:checked + span { background: var(--accent-color); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:focus-visible + span { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+
+/* Forms inside panels */
+.panel-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.form-title { font-size: 0.9rem; }
+.form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.7); }
+.field-grow { flex: 1; min-width: 180px; }
+.field-hint { font-size: 0.7rem; color: rgba(255, 255, 255, 0.5); }
+.panel-form input[type="text"],
+.panel-form input[type="url"],
+.panel-form input[type="time"],
+.panel-form select {
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(0, 0, 0, 0.25);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.88rem;
+    outline: none;
+    color-scheme: dark;
+}
+.panel-form input:focus, .panel-form select:focus { border-color: var(--accent-color); }
+.panel-form input[type="time"] { font-size: 1rem; font-weight: 600; }
+.panel-form select option { background: #1d2029; }
+.day-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.day-chips button {
+    min-width: 46px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.day-chips button.active { background: var(--accent-color); border-color: transparent; color: #111; }
+.panel-small-btn {
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.panel-small-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.panel-primary-btn {
+    height: 38px;
+    padding: 0 20px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent-color);
+    color: #111;
+    font-family: var(--base-font);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.panel-primary-btn:disabled { opacity: 0.6; cursor: wait; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.form-error { color: #ff9a8f; font-size: 0.8rem; min-height: 0; }
+.form-error:empty { display: none; }
+.help summary { cursor: pointer; font-size: 0.8rem; color: var(--accent-color); font-weight: 600; }
+.help-body { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; font-size: 0.8rem; line-height: 1.5; color: rgba(255, 255, 255, 0.8); }
+.folder-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+}
+.folder-row small { display: block; font-size: 0.75rem; color: rgba(255, 255, 255, 0.55); word-break: break-all; }
+
+/* ============ Built-in wallpapers, fit choice ============ */
+.builtin-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: -4px;
+}
+.builtin-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+}
+.builtin-tile {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.builtin-tile:hover, .builtin-tile:focus-visible { transform: translateY(-2px); border-color: var(--accent-color); }
+.builtin-upload {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    color: var(--primary-text);
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+.builtin-upload i { font-size: 0.95rem; color: var(--accent-color); }
+.current-wp {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.current-wp-thumb {
+    width: 58px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--bg-color-1, #2D5A46), var(--bg-color-2, #509F8C));
+    background-size: cover;
+    background-position: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.current-wp.no-image .fit-toggle,
+.current-wp.no-image #clear-wallpaper-btn { opacity: 0.4; pointer-events: none; }
+.fit-toggle {
+    flex: 1;
+    display: flex;
+    padding: 3px;
+    gap: 3px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.fit-toggle button {
+    flex: 1;
+    border: none;
+    border-radius: 7px;
+    padding: 6px 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.75);
+    font-family: var(--base-font);
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.fit-toggle button.active { background: var(--accent-color); color: #111; }
+.wp-fit {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+.wp-fit .fit-toggle { flex: none; }
+
+/* ============ Typed dates ============ */
+.when-preview { font-size: 0.78rem; color: var(--accent-color); min-height: 1.1em; font-weight: 600; }
+.when-preview.is-error { color: #ff9a8f; font-weight: 500; }
+.panel-form input[type="date"],
+#event-form input[type="text"], #event-form input[type="date"], #event-form input[type="time"],
+#event-form select, #event-form textarea {
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(0, 0, 0, 0.25);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.88rem;
+    outline: none;
+    color-scheme: dark;
+}
+#event-form textarea { height: auto; padding: 10px 12px; resize: vertical; }
+#event-form input:focus, #event-form select:focus, #event-form textarea:focus, .panel-form input[type="date"]:focus { border-color: var(--accent-color); }
+#event-form select option { background: #1d2029; }
+#event-form select:disabled { opacity: 0.6; }
+.check-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.check-field input { width: 18px; height: 18px; accent-color: var(--accent-color); }
+.spacer { flex: 1; }
+.form-actions { align-items: center; }
+.danger-text { color: #ff9a8f; }
+.danger-text:hover { background: rgba(239, 83, 80, 0.25); }
+.link-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent-color);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* ============ Google Calendar ============ */
+.google-box {
+    padding: 16px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.google-signed-out { display: flex; flex-direction: column; gap: 12px; }
+.google-intro strong { font-size: 1rem; }
+.google-intro p { font-size: 0.84rem; line-height: 1.5; color: rgba(255, 255, 255, 0.75); margin-top: 4px; }
+.google-btn {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    height: 44px;
+    padding: 0 20px 0 14px;
+    border-radius: 999px;
+    border: 1px solid #dadce0;
+    background: #fff;
+    color: #1f1f1f;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: box-shadow 0.15s ease;
+}
+.google-btn:hover { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); }
+.google-btn:disabled { opacity: 0.6; cursor: wait; }
+.google-btn svg, .google-account svg { width: 20px; height: 20px; flex-shrink: 0; }
+.google-note { font-size: 0.8rem; color: rgba(255, 255, 255, 0.7); line-height: 1.5; }
+.google-account { display: flex; align-items: center; gap: 12px; }
+.google-account > div { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.google-account small { font-size: 0.78rem; color: rgba(255, 255, 255, 0.6); overflow: hidden; text-overflow: ellipsis; }
+.google-calendars { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.google-cal-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.25);
+    font-size: 0.75rem;
+}
+.google-cal-chip i { width: 9px; height: 9px; border-radius: 50%; }
+.other-calendars { gap: 12px; }
+.other-calendars summary { cursor: pointer; }
+.other-calendars-form { display: flex; flex-direction: column; gap: 12px; }
+
+/* ============ Day view ============ */
+.day-dialog { width: min(560px, 100%); }
+.day-event {
+    width: 100%;
+    text-align: left;
+    color: inherit;
+    font-family: var(--base-font);
+    border-left: 4px solid var(--event-color, var(--accent-color));
+}
+.day-event.is-clickable { cursor: pointer; }
+.day-event.is-clickable:hover { background: rgba(255, 255, 255, 0.1); }
+.day-event-time { min-width: 128px; font-size: 0.82rem; font-weight: 600; opacity: 0.85; }
+.agenda-item.is-clickable { cursor: pointer; border-radius: 4px; }
+.agenda-item.is-clickable:hover { background: rgba(255, 255, 255, 0.08); }
+body.mode-editor .calendar-grid span:not(:empty) { cursor: pointer; }

@@ -2,3 +2,5 @@ node_modules/
 dist/
 calendars/
 __pycache__/
+# Google sign-in credentials for your build (see README: "Setting up Google sign-in")
+src/main/google-oauth.json
