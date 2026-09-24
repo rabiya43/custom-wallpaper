@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Wallpaper Dashboard</title>
     <meta name="description" content="A customizable live wallpaper dashboard with clock, weather, calendar, reminders and themes.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232D5A46'/%3E%3Ccircle cx='50' cy='50' r='24' fill='%23A5C271'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DynaPuff:wght@500;600;700&display=swap" rel="stylesheet">
@@ -93,13 +94,20 @@
         </div>
 
         <!-- Aesthetic Theme & Wallpaper Control Panel -->
-        <div class="theme-panel drag-widget" data-id="panel" style="bottom: 40px; right: 40px; width: 340px;">
+        <div class="theme-panel drag-widget" data-id="panel" style="bottom: 40px; right: 40px; width: 380px;">
             <span class="close-btn">&times;</span>
             
             <div class="panel-header">
                 <i class="fa-solid fa-palette"></i>
                 <span>THEME & WALLPAPER</span>
             </div>
+
+            <!-- Wallpaper search -->
+            <form class="wp-search" id="wp-search-form" role="search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" id="wp-search-input" placeholder="Try &quot;Elsa Frozen&quot;" autocomplete="off" maxlength="80" aria-label="Search for a wallpaper">
+                <button type="submit" id="wp-search-btn">Find</button>
+            </form>
 
             <!-- Upload & Image Actions -->
             <div class="panel-row">
@@ -108,9 +116,9 @@
                     <span>Upload Image</span>
                     <input type="file" id="wallpaper-file-input" accept="image/*" style="display:none;">
                 </label>
-                <button class="panel-btn icon-btn" id="toggle-fit-btn" title="Switch between Center Character Art and Full Screen Cover">
+                <button class="panel-btn icon-btn" id="toggle-fit-btn" title="Fill the whole screen with the image, or show it centered at its natural shape">
                     <i class="fa-solid fa-expand"></i>
-                    <span id="fit-label">Cover</span>
+                    <span id="fit-label">Fill screen</span>
                 </button>
                 <button class="panel-btn icon-btn danger-btn" id="clear-wallpaper-btn" title="Clear image">
                     <i class="fa-solid fa-trash-can"></i>
@@ -133,7 +141,7 @@
                 </button>
                 <button class="palette-chip" data-char="snow white" title="Snow White (Royal Blue & Amber)">
                     <span class="chip-color" style="background: linear-gradient(135deg, #2B3A67, #FFD166);"></span>
-                    Snow White
+                    Snow
                 </button>
                 <button class="palette-chip" data-char="tweety" title="Tweety (Canary Yellow & Sky)">
                     <span class="chip-color" style="background: linear-gradient(135deg, #E6AF2E, #4FC3F7);"></span>
@@ -163,10 +171,7 @@
                     <span>Color 2</span>
                     <input type="color" id="bg-color-2-picker" value="#509F8C">
                 </label>
-                <div class="search-wrap">
-                    <input type="text" id="theme-input" placeholder="Type character...">
-                    <button id="apply-theme-name-btn" title="Apply name palette"><i class="fa-solid fa-arrow-right"></i></button>
-                </div>
+                <span class="colors-hint">Colors update automatically when you pick a wallpaper</span>
             </div>
 
             <div class="panel-footer">
@@ -176,6 +181,28 @@
         </div>
 
     </div>
+
+    <!-- Wallpaper search results -->
+    <div id="wp-modal" class="wp-modal" hidden>
+        <div class="wp-dialog" role="dialog" aria-modal="true" aria-labelledby="wp-modal-title">
+            <header class="wp-dialog-header">
+                <div>
+                    <h3 id="wp-modal-title">Wallpapers for &ldquo;<span id="wp-query"></span>&rdquo;</h3>
+                    <p id="wp-status" class="wp-status" aria-live="polite"></p>
+                </div>
+                <button type="button" id="wp-close" class="wp-close" aria-label="Close">&times;</button>
+            </header>
+            <div class="wp-filters" id="wp-filters" role="group" aria-label="Filter by shape">
+                <button type="button" class="wp-filter active" data-shape="all">All</button>
+                <button type="button" class="wp-filter" data-shape="wide">Wide <small>fills the screen</small></button>
+                <button type="button" class="wp-filter" data-shape="portrait">Portrait <small>centered art</small></button>
+            </div>
+            <div id="wp-grid" class="wp-grid"></div>
+            <footer class="wp-dialog-footer">Click an image to use it. Images belong to their creators and are for personal use.</footer>
+        </div>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
     <script src="script.js"></script>
 </body>
 </html>

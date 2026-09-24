@@ -1,6 +1,6 @@
 @echo off
-echo Starting Dashboard Local API Sync...
+echo Starting Dashboard server (wallpaper search, calendar, reminders)...
 cd /d "%~dp0"
 python -m pip install -r requirements.txt
-python calendar_sync.py
+python server.py
 pause

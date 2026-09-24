@@ -1,5 +1,6 @@
-// Optional local Python server (calendar events + reminder mirroring)
-const SYNC_SERVER = 'http://localhost:5000';
+// Local Python server (wallpaper search, calendar events, reminder mirroring).
+// When the dashboard is served by it, use same-origin requests; otherwise (file:// or another dev server) call it directly.
+const SYNC_SERVER = location.protocol.startsWith('http') && location.port === '5000' ? '' : 'http://localhost:5000';
 
 // --- Draggable, Resizable, & Edit Mode ---
 document.addEventListener('dblclick', (e) => {
@@ -210,26 +211,6 @@ const CHARACTER_PALETTES = {
     'elsa':      {bg1:'#1B4B6E', bg2:'#8BBBD9', widgetBg:'rgba(15,35,55,0.45)', accent:'#87CEFA', glow:'#F0F8FF', text:'#FFF'}
 };
 
-function getColorPalette(userInput) {
-    const lower = userInput.toLowerCase().trim();
-    for (const [key, palette] of Object.entries(CHARACTER_PALETTES)) {
-        if (lower.includes(key)) return { name: key, palette };
-    }
-    // Deterministic hash gradient for unknown inputs
-    const h1 = [...userInput].reduce((a,c) => a + c.charCodeAt(0), 0) % 360;
-    const h2 = (h1 + 45) % 360;
-    return {
-        name: userInput,
-        palette: {
-            bg1: `hsl(${h1}, 45%, 35%)`, bg2: `hsl(${h2}, 55%, 25%)`,
-            widgetBg: `hsla(${h1}, 45%, 15%, 0.45)`,
-            accent: `hsl(${(h1+25)%360}, 85%, 75%)`,
-            glow: `hsl(${(h1+15)%360}, 90%, 80%)`,
-            text: '#FFF'
-        }
-    };
-}
-
 function applyPalette(palette, activeName = '') {
     const root = document.documentElement;
     const bg1 = palette.bg1 || '#2D5A46';
@@ -349,11 +330,11 @@ function setFitMode(mode) {
     if (mode === 'cover') {
         wpContainer.classList.remove('mode-center');
         wpContainer.classList.add('mode-cover');
-        if (fitLabel) fitLabel.textContent = 'Center';
+        if (fitLabel) fitLabel.textContent = 'Center art';
     } else {
         wpContainer.classList.remove('mode-cover');
         wpContainer.classList.add('mode-center');
-        if (fitLabel) fitLabel.textContent = 'Cover';
+        if (fitLabel) fitLabel.textContent = 'Fill screen';
     }
     localStorage.setItem('wallpaper-fit-mode', mode);
 }
@@ -395,23 +376,245 @@ function updateCustomColors() {
 if (color1Picker) color1Picker.addEventListener('input', updateCustomColors);
 if (color2Picker) color2Picker.addEventListener('input', updateCustomColors);
 
-// 7. Character Name Prompt Search
-const themeInput = document.getElementById('theme-input');
-const applyNameBtn = document.getElementById('apply-theme-name-btn');
+// 7. Wallpaper search (needs the local server: python server.py)
+const wpForm = document.getElementById('wp-search-form');
+const wpInput = document.getElementById('wp-search-input');
+const wpModal = document.getElementById('wp-modal');
+const wpGrid = document.getElementById('wp-grid');
+const wpStatus = document.getElementById('wp-status');
+const wpQuery = document.getElementById('wp-query');
+const wpFilters = document.querySelectorAll('.wp-filter');
+const toastEl = document.getElementById('toast');
 
-function handleNameSearch() {
-    const val = themeInput ? themeInput.value.trim() : '';
-    if (!val) return;
-    const { name, palette } = getColorPalette(val);
-    applyPalette(palette, name);
+let wpResults = [];
+let wpShape = 'all';
+let wpAbort = null;
+let toastTimer = null;
+
+function showToast(message) {
+    toastEl.textContent = message;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 4000);
 }
 
-if (applyNameBtn) applyNameBtn.addEventListener('click', handleNameSearch);
-if (themeInput) {
-    themeInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') handleNameSearch();
+function openWpModal(query) {
+    wpQuery.textContent = query;
+    wpModal.hidden = false;
+    document.getElementById('wp-close').focus();
+}
+
+function closeWpModal() {
+    if (wpAbort) wpAbort.abort();
+    wpModal.hidden = true;
+    wpInput.focus();
+}
+
+function renderSkeletons() {
+    wpGrid.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+        const sk = document.createElement('div');
+        sk.className = 'wp-card wp-skeleton';
+        wpGrid.appendChild(sk);
+    }
+}
+
+function renderMessage(title, detail) {
+    wpGrid.innerHTML = '';
+    const box = document.createElement('div');
+    box.className = 'wp-empty';
+    const h = document.createElement('strong');
+    h.textContent = title;
+    const p = document.createElement('p');
+    p.textContent = detail;
+    box.append(h, p);
+    wpGrid.appendChild(box);
+}
+
+function renderResults() {
+    const shown = wpShape === 'all' ? wpResults : wpResults.filter(r => r.shape === wpShape);
+    wpFilters.forEach(b => b.classList.toggle('active', b.dataset.shape === wpShape));
+    if (shown.length === 0) {
+        renderMessage('Nothing in this shape', 'Try "All" or a different search.');
+        return;
+    }
+    wpGrid.innerHTML = '';
+    shown.forEach(item => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'wp-card';
+        card.title = `${item.width}×${item.height} · ${item.source}`;
+
+        const img = document.createElement('img');
+        img.src = item.thumb;
+        img.alt = item.title;
+        img.loading = 'lazy';
+        img.referrerPolicy = 'no-referrer';
+        img.onerror = () => card.remove();
+
+        const meta = document.createElement('span');
+        meta.className = 'wp-meta';
+        meta.textContent = `${item.width}×${item.height} · ${item.source}`;
+
+        card.append(img, meta);
+        card.addEventListener('click', () => applyRemoteWallpaper(item, card));
+        wpGrid.appendChild(card);
     });
 }
+
+async function runWallpaperSearch(query) {
+    if (wpAbort) wpAbort.abort();
+    wpAbort = new AbortController();
+    const signal = wpAbort.signal;
+    const timeout = setTimeout(() => wpAbort.abort(), 25000);
+
+    wpShape = 'all';
+    openWpModal(query);
+    renderSkeletons();
+    wpStatus.textContent = 'Searching...';
+
+    try {
+        const res = await fetch(`${SYNC_SERVER}/api/search?q=${encodeURIComponent(query)}`, { signal });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Search failed');
+
+        wpResults = data.results;
+        if (wpResults.length === 0) {
+            wpStatus.textContent = 'No matches';
+            renderMessage('No wallpapers found',
+                'Check the spelling, or try just the character or the movie name (for example "Elsa" or "Frozen").');
+            return;
+        }
+        const note = data.failed_sources.length ? ` (${data.failed_sources.join(', ')} unavailable)` : '';
+        wpStatus.textContent = `${wpResults.length} results${note}`;
+        renderResults();
+    } catch (e) {
+        if (wpAbort.signal !== signal || wpModal.hidden) return;  // superseded by a newer search, or closed
+        wpStatus.textContent = 'Search unavailable';
+        if (e.name === 'AbortError') {
+            renderMessage('The search took too long', 'Check your internet connection and try again.');
+        } else if (e.name === 'TypeError') {
+            renderMessage("Can't reach the dashboard server",
+                'Start it with start-calendar-sync.bat (or "python server.py"), then open http://localhost:5000 and try again.');
+        } else {
+            renderMessage('Something went wrong', e.message);
+        }
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+// Downscale huge images (8K wallpapers) so they stay smooth and fit in storage
+async function prepareImage(blob) {
+    const MAX = 3840;
+    const bitmap = await createImageBitmap(blob);
+    if (bitmap.width <= MAX) return { blob, bitmap };
+    const scale = MAX / bitmap.width;
+    const canvas = document.createElement('canvas');
+    canvas.width = MAX;
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const type = blob.type === 'image/png' ? 'image/png' : 'image/jpeg';
+    const resized = await new Promise(resolve => canvas.toBlob(resolve, type, 0.92));
+    return { blob: resized || blob, bitmap };
+}
+
+// Pick theme colors from the image: dominant saturated hue -> dark background, light accent
+function extractPalette(bitmap) {
+    const size = 48;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(bitmap, 0, 0, size, size);
+    const px = ctx.getImageData(0, 0, size, size).data;
+
+    const bins = Array.from({ length: 12 }, () => ({ weight: 0, s: 0, l: 0, n: 0 }));
+    let lightSum = 0, counted = 0;
+    for (let i = 0; i < px.length; i += 4) {
+        if (px[i + 3] < 128) continue;
+        const r = px[i] / 255, g = px[i + 1] / 255, b = px[i + 2] / 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const l = (max + min) / 2;
+        lightSum += l; counted++;
+        const d = max - min;
+        if (d < 0.08 || l < 0.12 || l > 0.9) continue;  // skip grays, near-black, near-white
+        const s = d / (1 - Math.abs(2 * l - 1));
+        let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        h = (h * 60 + 360) % 360;
+        const bin = bins[Math.floor(h / 30) % 12];
+        const w = s * (1 - Math.abs(l - 0.5));  // favour vivid, mid-tone pixels
+        bin.weight += w; bin.s += s * w; bin.l += l * w; bin.n++;
+        bin.hue = (bin.hue || 0) + h * w;
+    }
+    const ranked = bins.map((b, i) => ({ ...b, i })).filter(b => b.weight > 0).sort((a, b) => b.weight - a.weight);
+
+    if (ranked.length === 0) {  // grayscale image
+        const gray = Math.round((counted ? lightSum / counted : 0.3) * 30);
+        return {
+            bg1: `hsl(220, 8%, ${Math.max(10, gray)}%)`, bg2: `hsl(220, 8%, ${Math.max(18, gray + 12)}%)`,
+            widgetBg: 'rgba(15,18,25,0.5)', accent: 'hsl(210, 60%, 80%)', glow: 'hsl(210, 70%, 90%)', text: '#FFF'
+        };
+    }
+    const hueOf = b => Math.round(b.hue / b.weight);
+    const primary = ranked[0];
+    const secondary = ranked.find(b => Math.abs(b.i - primary.i) >= 2 && Math.abs(b.i - primary.i) <= 10) || primary;
+    const h1 = hueOf(primary), h2 = hueOf(secondary);
+    const s1 = Math.min(70, Math.max(35, Math.round(primary.s / primary.weight * 100)));
+    const s2 = Math.min(70, Math.max(35, Math.round(secondary.s / secondary.weight * 100)));
+    return {
+        bg1: `hsl(${h1}, ${s1}%, 22%)`,
+        bg2: `hsl(${h2}, ${s2}%, 34%)`,
+        widgetBg: `hsla(${h1}, ${Math.min(s1, 50)}%, 12%, 0.5)`,
+        accent: `hsl(${h2}, 85%, 76%)`,
+        glow: `hsl(${h2}, 90%, 86%)`,
+        text: '#FFF'
+    };
+}
+
+async function applyRemoteWallpaper(item, card) {
+    if (card.classList.contains('loading')) return;
+    card.classList.add('loading');
+    wpStatus.textContent = 'Downloading full-size image...';
+    try {
+        const res = await fetch(`${SYNC_SERVER}/api/image?url=${encodeURIComponent(item.full)}`);
+        if (!res.ok) throw new Error('Could not download that image');
+        const { blob, bitmap } = await prepareImage(await res.blob());
+
+        const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+
+        setWallpaperDisplay(dataUrl);
+        await WallpaperDB.save(dataUrl);
+        setFitMode(item.shape === 'wide' ? 'cover' : 'center');
+        applyPalette(extractPalette(bitmap), '');
+        bitmap.close?.();
+
+        wpModal.hidden = true;
+        showToast('Wallpaper applied. Colors were matched to the image.');
+    } catch (e) {
+        card.classList.remove('loading');
+        wpStatus.textContent = 'That one failed. Try another image.';
+        showToast(e.message || 'Could not apply that image');
+    }
+}
+
+if (wpForm) {
+    wpForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = wpInput.value.trim();
+        if (q.length < 2) { wpInput.focus(); return; }
+        runWallpaperSearch(q);
+    });
+}
+wpFilters.forEach(btn => btn.addEventListener('click', () => { wpShape = btn.dataset.shape; renderResults(); }));
+document.getElementById('wp-close').addEventListener('click', closeWpModal);
+wpModal.addEventListener('click', (e) => { if (e.target === wpModal) closeWpModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !wpModal.hidden) closeWpModal(); });
 
 // --- INITIALIZATION ON STARTUP ---
 async function initDashboardTheme() {
