@@ -31,6 +31,8 @@
     <div class="editor-bar" role="toolbar" aria-label="Customize wallpaper">
         <span class="editor-bar-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Customize your wallpaper</span>
         <span class="editor-bar-hint">Double-click a widget to move or resize it</span>
+        <button type="button" id="editor-alarms-btn" class="editor-btn"><i class="fa-solid fa-bell"></i> Alarms</button>
+        <button type="button" id="editor-calendars-btn" class="editor-btn"><i class="fa-regular fa-calendar"></i> Calendars</button>
         <button type="button" id="editor-web-btn" class="editor-btn"><i class="fa-solid fa-globe"></i> Search the web</button>
         <button type="button" id="editor-done-btn" class="editor-btn editor-btn-primary">Done</button>
     </div>
@@ -75,6 +77,13 @@
                 <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
             </div>
             <div class="calendar-grid" id="calendar-grid" style="font-size: 0.7rem;"></div>
+        </div>
+
+        <!-- Upcoming events (desktop app, from connected calendars) -->
+        <div class="widget drag-widget agenda-widget" data-id="agenda" style="top: 250px; right: 50px; width: 290px; height: 240px; border-radius: 18px;">
+            <span class="close-btn">&times;</span>
+            <div class="agenda-header"><i class="fa-regular fa-calendar"></i> Upcoming</div>
+            <div id="agenda-list" class="agenda-list"></div>
         </div>
 
         <!-- Reminders / Todo Widget -->
@@ -215,8 +224,121 @@
             <footer class="wp-dialog-footer">Click an image to use it. Images belong to their creators and are for personal use.</footer>
         </div>
     </div>
+    <!-- Alarms (desktop app) -->
+    <div id="alarms-modal" class="wp-modal" hidden>
+        <div class="wp-dialog panel-dialog" role="dialog" aria-modal="true" aria-labelledby="alarms-title">
+            <header class="wp-dialog-header">
+                <div>
+                    <h3 id="alarms-title"><i class="fa-solid fa-bell"></i> Alarms</h3>
+                    <p class="wp-status" id="alarms-next"></p>
+                </div>
+                <div class="wp-header-actions">
+                    <button type="button" class="wp-web-btn" id="alarm-add-btn"><i class="fa-solid fa-plus"></i> Add alarm</button>
+                    <button type="button" class="wp-close" data-close aria-label="Close">&times;</button>
+                </div>
+            </header>
+            <div class="panel-body">
+                <form id="alarm-form" class="panel-form" hidden>
+                    <div class="form-row">
+                        <label class="field">
+                            <span>Time</span>
+                            <input type="time" id="af-time" required>
+                        </label>
+                        <label class="field field-grow">
+                            <span>Label</span>
+                            <input type="text" id="af-label" maxlength="60" placeholder="e.g. Class, Gym, Wake up">
+                        </label>
+                    </div>
+                    <div class="field">
+                        <span>Repeat</span>
+                        <div class="day-chips" id="af-days" role="group" aria-label="Repeat on">
+                            <button type="button" data-day="1">Mon</button>
+                            <button type="button" data-day="2">Tue</button>
+                            <button type="button" data-day="3">Wed</button>
+                            <button type="button" data-day="4">Thu</button>
+                            <button type="button" data-day="5">Fri</button>
+                            <button type="button" data-day="6">Sat</button>
+                            <button type="button" data-day="0">Sun</button>
+                        </div>
+                        <small class="field-hint">Pick no days to ring once.</small>
+                    </div>
+                    <div class="field">
+                        <span>Sound</span>
+                        <div class="form-row">
+                            <select id="af-sound" aria-label="Alarm sound"></select>
+                            <button type="button" class="panel-small-btn" id="af-pick-sound"><i class="fa-solid fa-folder-open"></i> Your own sound...</button>
+                            <button type="button" class="panel-small-btn" id="af-preview"><i class="fa-solid fa-play"></i> Preview</button>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="panel-small-btn" id="af-cancel">Cancel</button>
+                        <button type="submit" class="panel-primary-btn">Save alarm</button>
+                    </div>
+                </form>
+                <div id="alarm-list" class="panel-list"></div>
+            </div>
+            <footer class="wp-dialog-footer">Alarms ring while the app is running, even with this window closed. Like most alarm apps, they can't wake a PC that is asleep or shut down.</footer>
+        </div>
+    </div>
+
+    <!-- Calendars (desktop app) -->
+    <div id="calendars-modal" class="wp-modal" hidden>
+        <div class="wp-dialog panel-dialog" role="dialog" aria-modal="true" aria-labelledby="calendars-title">
+            <header class="wp-dialog-header">
+                <div>
+                    <h3 id="calendars-title"><i class="fa-regular fa-calendar"></i> Calendars</h3>
+                    <p class="wp-status">Show events from Google Calendar, Outlook and other calendars.</p>
+                </div>
+                <div class="wp-header-actions">
+                    <button type="button" class="wp-close" data-close aria-label="Close">&times;</button>
+                </div>
+            </header>
+            <div class="panel-body">
+                <div id="calendar-list" class="panel-list"></div>
+
+                <form id="calendar-form" class="panel-form">
+                    <strong class="form-title">Connect a calendar</strong>
+                    <label class="field">
+                        <span>Private calendar link (iCal / .ics)</span>
+                        <input type="url" id="cf-url" required placeholder="https://calendar.google.com/calendar/ical/.../basic.ics" autocomplete="off">
+                    </label>
+                    <div class="form-row">
+                        <label class="field field-grow">
+                            <span>Name (optional)</span>
+                            <input type="text" id="cf-name" maxlength="40" placeholder="e.g. University">
+                        </label>
+                        <button type="submit" class="panel-primary-btn" id="cf-submit">Connect</button>
+                    </div>
+                    <p class="form-error" id="cf-error" role="alert"></p>
+                    <details class="help">
+                        <summary>Where do I find this link?</summary>
+                        <div class="help-body">
+                            <p><b>Google Calendar</b> (on a computer): Settings &rarr; click your calendar under "Settings for my calendars" &rarr; <i>Integrate calendar</i> &rarr; copy <b>Secret address in iCal format</b>.</p>
+                            <p><b>Outlook / Microsoft 365</b>: Settings &rarr; Calendar &rarr; <i>Shared calendars</i> &rarr; under "Publish a calendar" pick your calendar and <i>Can view all details</i> &rarr; Publish &rarr; copy the <b>ICS</b> link.</p>
+                            <p><b>Apple iCloud</b>: in the Calendar app, share the calendar as a <i>Public Calendar</i> and copy the link.</p>
+                            <p>Keep this link private: anyone who has it can see your events. The app only reads it.</p>
+                        </div>
+                    </details>
+                </form>
+
+                <div class="folder-row">
+                    <div>
+                        <strong>Folder of .ics files</strong>
+                        <small id="calendar-folder">Not set</small>
+                    </div>
+                    <div class="form-row">
+                        <button type="button" class="panel-small-btn" id="cal-folder-btn">Choose folder...</button>
+                        <button type="button" class="panel-small-btn" id="cal-folder-clear" hidden>Remove</button>
+                    </div>
+                </div>
+            </div>
+            <footer class="wp-dialog-footer">Events refresh every 10 minutes. Nothing is sent anywhere except to your calendar's own address.</footer>
+        </div>
+    </div>
+
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+    <script src="sounds.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

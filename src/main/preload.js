@@ -9,4 +9,20 @@ contextBridge.exposeInMainWorld('desktop', {
     onWebState: cb => ipcRenderer.on('web:state', (_e, data) => cb(data)),
     onWebNav: cb => ipcRenderer.on('web:nav', (_e, data) => cb(data)),
     onWebToast: cb => ipcRenderer.on('web:toast', (_e, msg) => cb(msg)),
+    onOpenPanel: cb => ipcRenderer.on('editor:panel', (_e, panel) => cb(panel)),
+
+    // Alarms
+    getAlarms: () => ipcRenderer.invoke('alarms:get'),
+    saveAlarms: list => ipcRenderer.invoke('alarms:save', list),
+    pickAlarmSound: () => ipcRenderer.invoke('alarms:pick-sound'),
+    alarmAction: (id, action) => ipcRenderer.send('alarm:action', { id, action }),
+    onAlarmsChanged: cb => ipcRenderer.on('alarms:changed', () => cb()),
+
+    // Calendars
+    getCalendars: () => ipcRenderer.invoke('calendars:get'),
+    addCalendar: feed => ipcRenderer.invoke('calendars:add', feed),
+    removeCalendar: id => ipcRenderer.invoke('calendars:remove', id),
+    chooseCalendarFolder: () => ipcRenderer.invoke('calendars:choose-folder'),
+    clearCalendarFolder: () => ipcRenderer.invoke('calendars:clear-folder'),
+    onCalendarsChanged: cb => ipcRenderer.on('calendars:changed', () => cb()),
 });

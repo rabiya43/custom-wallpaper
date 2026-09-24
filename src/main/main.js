@@ -9,6 +9,8 @@ const { app, BrowserWindow, WebContentsView, Menu, Tray, ipcMain, screen, dialog
 const api = require('./api');
 const config = require('./config');
 const desktopHost = require('./desktop-host');
+const alarms = require('./alarms');
+const calendars = require('./calendars');
 
 const APP_URL = 'app://dashboard/index.html';
 const ICON = path.join(__dirname, '..', '..', 'build', 'icon.png');
@@ -286,28 +288,79 @@ function buildTrayMenu() {
             label: 'Start with Windows', type: 'checkbox', checked: login,
             click: item => { app.setLoginItemSettings({ openAtLogin: item.checked }); },
         },
-        {
-            label: 'Calendar folder (.ics files)...',
-            click: async () => {
-                const r = await dialog.showOpenDialog({ properties: ['openDirectory'], title: 'Choose a folder with .ics calendar files' });
-                if (!r.canceled && r.filePaths[0]) {
-                    config.set('calendarDir', r.filePaths[0]);
-                    wallpaperWin?.reload();
-                    editorWin?.reload();
-                }
-            },
-        },
+        { type: 'separator' },
+        { label: 'Alarms...', click: () => openEditorPanel('alarms') },
+        { label: 'Calendars...', click: () => openEditorPanel('calendars') },
         { type: 'separator' },
         { label: 'Quit', click: () => app.quit() },
     ]);
 }
 
+function updateTrayTooltip() {
+    if (!tray) return;
+    const n = alarms.next();
+    let tip = 'Live Wallpaper Dashboard';
+    if (n) {
+        const d = new Date(n.at);
+        tip += `\nNext alarm: ${d.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`;
+    }
+    tray.setToolTip(tip);
+}
+
 function createTray() {
     const img = nativeImage.createFromPath(ICON).resize({ width: 16, height: 16 });
     tray = new Tray(img);
-    tray.setToolTip('Live Wallpaper Dashboard');
     tray.setContextMenu(buildTrayMenu());
     tray.on('double-click', () => openEditor());
+    updateTrayTooltip();
+}
+
+/** Opens the editor with the alarms or calendars panel showing. */
+function openEditorPanel(panel) {
+    openEditor();
+    const send = () => editorWin.webContents.send('editor:panel', panel);
+    if (editorWin.webContents.isLoading()) editorWin.webContents.once('did-finish-load', send);
+    else send();
+}
+
+/** Tells the dashboard windows that alarms or calendars changed, so their widgets update. */
+function broadcast(channel) {
+    for (const win of [wallpaperWin, editorWin]) {
+        if (win && !win.isDestroyed()) win.webContents.send(channel);
+    }
+}
+
+// ------------------------------------------------------------------ alarms
+
+const ringing = new Map();  // alarm id -> window
+
+function ring(alarm) {
+    if (ringing.has(alarm.id)) return;
+    const d = targetDisplay().workArea;
+    const width = 440, height = 300;
+    const win = new BrowserWindow({
+        width, height,
+        x: Math.round(d.x + (d.width - width) / 2),
+        y: Math.round(d.y + (d.height - height) / 2),
+        show: false,
+        frame: false,
+        transparent: true,
+        resizable: false,
+        alwaysOnTop: true,
+        skipTaskbar: false,
+        title: `Alarm${alarm.label ? `: ${alarm.label}` : ''}`,
+        icon: ICON,
+        webPreferences: { preload: path.join(__dirname, 'preload.js'), backgroundThrottling: false },
+    });
+    win.setAlwaysOnTop(true, 'screen-saver');  // above full-screen apps too
+    const q = new URLSearchParams({
+        id: alarm.id, time: alarm.time, label: alarm.label, sound: alarm.sound, snooze: String(alarms.SNOOZE_MINUTES),
+    });
+    win.loadURL(`app://dashboard/alarm.html?${q}`);
+    win.once('ready-to-show', () => { win.show(); win.focus(); win.flashFrame(true); });
+    win.on('closed', () => ringing.delete(alarm.id));
+    ringing.set(alarm.id, win);
+    notify(alarm.label || 'Alarm', `It's ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
 }
 
 // ------------------------------------------------------------------ IPC
@@ -315,6 +368,59 @@ function createTray() {
 ipcMain.on('editor:close', () => editorWin?.close());
 ipcMain.on('web:open', (_e, { query, engine }) => openWebSearch(query, engine));
 ipcMain.on('web:back', () => webView?.webContents.navigationHistory.goBack());
+
+ipcMain.handle('alarms:get', () => ({ alarms: alarms.list(), next: alarms.next(), snoozeMinutes: alarms.SNOOZE_MINUTES }));
+ipcMain.handle('alarms:save', (_e, list) => alarms.save(list));
+ipcMain.handle('alarms:pick-sound', async (event) => {
+    const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
+        title: 'Choose an alarm sound',
+        properties: ['openFile'],
+        filters: [{ name: 'Sounds', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'] }],
+    });
+    if (r.canceled || !r.filePaths[0]) return null;
+    try {
+        return alarms.importSound(r.filePaths[0]);
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+ipcMain.on('alarm:action', (event, { id, action }) => {
+    if (action === 'snooze') alarms.snooze(id);
+    BrowserWindow.fromWebContents(event.sender)?.close();
+    broadcast('alarms:changed');
+    updateTrayTooltip();
+});
+
+ipcMain.handle('calendars:get', () => ({
+    feeds: calendars.feeds().map(({ id, name, color, url }) => ({ id, name, color, host: new URL(url).host })),
+    folder: config.get('calendarDir') || '',
+}));
+ipcMain.handle('calendars:add', async (_e, feed) => {
+    try {
+        const saved = await calendars.addFeed(feed);
+        broadcast('calendars:changed');
+        return { feed: { id: saved.id, name: saved.name, color: saved.color } };
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+ipcMain.handle('calendars:remove', (_e, id) => {
+    calendars.removeFeed(id);
+    broadcast('calendars:changed');
+});
+ipcMain.handle('calendars:choose-folder', async (event) => {
+    const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
+        properties: ['openDirectory'], title: 'Choose a folder with .ics calendar files',
+    });
+    if (r.canceled || !r.filePaths[0]) return null;
+    config.set('calendarDir', r.filePaths[0]);
+    broadcast('calendars:changed');
+    return r.filePaths[0];
+});
+ipcMain.handle('calendars:clear-folder', () => {
+    config.set('calendarDir', '');
+    broadcast('calendars:changed');
+});
 
 // ------------------------------------------------------------------ lifecycle
 
@@ -326,6 +432,11 @@ app.whenReady().then(() => {
 
     if (!config.get('paused')) createWallpaper();
     startWatchdog();
+    alarms.start({
+        onRing: ring,
+        onChange: () => { broadcast('alarms:changed'); updateTrayTooltip(); },
+    });
+    setInterval(updateTrayTooltip, 60000);
 
     if (!config.get('welcomed')) {
         config.set('welcomed', true);
@@ -342,7 +453,8 @@ app.on('window-all-closed', () => {});
 
 if (process.env.LWD_TEST_PROFILE) {
     global.lwdTest = {
-        setWallpaperFromUrl, openWebSearch, openEditor, fetchImage: api.fetchImage,
+        setWallpaperFromUrl, openWebSearch, openEditor, openEditorPanel, ring, fetchImage: api.fetchImage,
+        alarms, calendars, ringing, config,
         windows: () => ({ wallpaperWin, editorWin, webWin, webView }),
     };
 }

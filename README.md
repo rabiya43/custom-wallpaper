@@ -4,7 +4,7 @@ A live desktop wallpaper for Windows. It sits behind your desktop icons and show
 
 ## Install
 
-Download `Live Wallpaper Dashboard Setup.exe` from the [Releases](https://github.com/rabiya43/custom-wallpaper/releases) page and run it.
+Download the latest `Live Wallpaper Dashboard Setup.exe` from the [Releases](https://github.com/rabiya43/custom-wallpaper/releases) page and run it.
 
 Windows may show "Windows protected your PC" because the installer isn't code-signed. Click **More info**, then **Run anyway**.
 
@@ -19,14 +19,30 @@ After installing, the dashboard becomes your wallpaper and an icon appears in th
   - **Search the whole web:** opens a browser window with Google, Bing or DuckDuckGo Images. Open any image, then **right-click → Set as wallpaper**.
   - **Upload or drag in** your own image.
   - **Move and resize widgets:** double-click a widget, drag it, resize from the corner, press Esc to finish. "Reset layout" restores the defaults.
-  - Set an **alarm** (click the bell; right-click to turn it off) and add **reminders**.
+  - Add **reminders**.
   - Press **Done** to go back to your desktop.
+- **Alarms...** (tray menu, the bell widget, or the Alarms button in the editor):
+  - Add as many alarms as you like, each with a time, label and repeat days (for example weekdays only), or ring once.
+  - Pick a built-in tone (Chime, Beep, Digital clock, Gentle) or **your own sound** (MP3, WAV, OGG, M4A, AAC, FLAC), and preview it.
+  - When an alarm goes off, a window pops up on top of everything and the sound fades in until you press **Snooze** (5 minutes) or **Dismiss**.
+  - The bell widget and the tray tooltip show the next alarm.
+  - Alarms ring while the app is running, even with the editor closed. Like most alarm apps, they can't wake a PC that is asleep or shut down.
+- **Calendars...** shows your events on the wallpaper: dots on the calendar and an **Upcoming** list of today's and the next events. Repeating events, all-day events and time zones are handled. See [Connecting your calendar](#connecting-your-calendar).
 - **Pause live wallpaper** brings back your normal Windows wallpaper until you resume.
 - **Start with Windows** launches it automatically when you sign in.
-- **Calendar folder** shows events from `.ics` files (exported from Outlook, Google Calendar, etc.) as dots on the calendar.
 - **Quit** closes the app and restores your normal wallpaper.
 
 Colors are picked from the image automatically, or choose a preset or your own colors in the editor.
+
+## Connecting your calendar
+
+Paste your calendar's private iCal link into **Calendars → Connect a calendar**. The app checks the link, names it after the calendar, and refreshes it every 10 minutes.
+
+- **Google Calendar** (on a computer): Settings → click your calendar under "Settings for my calendars" → *Integrate calendar* → copy **Secret address in iCal format**.
+- **Outlook / Microsoft 365**: Settings → Calendar → *Shared calendars* → under "Publish a calendar", pick your calendar and *Can view all details* → Publish → copy the **ICS** link.
+- **Apple iCloud**: share the calendar as a *Public Calendar* and copy the link (`webcal://` links work).
+
+Keep the link private: anyone who has it can see your events. You can connect up to 10 calendars, each with its own color. A folder of `.ics` files also works.
 
 ## How the wallpaper search works
 
@@ -67,7 +83,10 @@ Run `electron . --quit` (or the installed app with `--quit`) to close a running 
 ```
 src/
   main/
-    main.js          windows, tray, web search window
+    main.js          windows, tray, web search window, alarm window
+    alarms.js        alarm schedule, snooze, custom sounds
+    calendars.js     calendar links and .ics files, repeating events
+    net-safety.js    only public addresses are downloaded
     desktop-host.js  places the wallpaper behind the desktop icons (Win32 via koffi)
     api.js           app:// scheme: serves the dashboard and its /api/* endpoints
     image-search.js  multi-source wallpaper search and ranking
@@ -76,6 +95,7 @@ src/
   renderer/
     index.html, script.js, style.css   the dashboard (wallpaper and editor modes)
     web.html, web.js                   toolbar of the web search window
+    alarm.html, alarm.js, sounds.js    ringing window and alarm tones
 build/icon.png
 ```
 

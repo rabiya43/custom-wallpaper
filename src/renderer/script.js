@@ -727,72 +727,302 @@ function updateTimeAndDate() {
 }
 updateTimeAndDate();
 
-// --- Alarm: stored as 24h "HH:MM", rings once when the time is reached ---
+const pad2 = n => String(n).padStart(2, '0');
+const localDay = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+function format12(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return `${h % 12 || 12}:${pad2(m)} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+
+/** Runs fn on a single click only, so a double-click can still enter widget edit mode. */
+function onSingleClick(el, fn) {
+    let timer = null;
+    el.addEventListener('click', (e) => {
+        if (e.detail > 1 || e.target.closest('.close-btn') || el.closest('.edit-mode')) { clearTimeout(timer); return; }
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(e), 260);
+    });
+    el.addEventListener('dblclick', () => clearTimeout(timer));
+}
+// --- Alarms ---
 const alarmWidget = document.getElementById('alarm-widget');
 const alarmTimeText = document.getElementById('alarm-time');
 const alarmInput = document.getElementById('alarm-input');
-let savedAlarm = localStorage.getItem('dashboard-alarm') || '';
-let lastRungMinute = '';
 
-function formatAlarm(value) {
-    if (!value) return 'Off';
-    const [h, m] = value.split(':').map(Number);
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+if (!IS_APP) {
+    // In a plain browser: one simple alarm that rings while the page is open
+    let savedAlarm = localStorage.getItem('dashboard-alarm') || '';
+    let lastRungMinute = '';
+
+    const setAlarm = (value) => {
+        savedAlarm = value;
+        if (value) localStorage.setItem('dashboard-alarm', value);
+        else localStorage.removeItem('dashboard-alarm');
+        alarmTimeText.innerText = value ? format12(value) : 'Off';
+        alarmWidget.classList.toggle('alarm-on', !!value);
+    };
+
+    setInterval(() => {
+        if (!savedAlarm) return;
+        const now = new Date();
+        const current = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+        if (current === savedAlarm && lastRungMinute !== current) {
+            lastRungMinute = current;
+            alarmWidget.classList.add('alarm-ringing');
+            const stop = window.AlarmSound.play('chime', { loop: true });
+            setTimeout(() => { stop(); alarmWidget.classList.remove('alarm-ringing'); }, 30000);
+        }
+    }, 5000);
+
+    alarmWidget.addEventListener('click', () => {
+        alarmInput.value = savedAlarm || '07:00';
+        if (alarmInput.showPicker) alarmInput.showPicker(); else alarmInput.click();
+    });
+    alarmWidget.addEventListener('contextmenu', (e) => { e.preventDefault(); setAlarm(''); });
+    alarmInput.addEventListener('change', () => setAlarm(alarmInput.value));
+    setAlarm(savedAlarm);
 }
 
-function setAlarm(value) {
-    savedAlarm = value;
-    if (value) localStorage.setItem('dashboard-alarm', value);
-    else localStorage.removeItem('dashboard-alarm');
-    alarmTimeText.innerText = formatAlarm(value);
-    alarmWidget.classList.toggle('alarm-on', !!value);
-    if (value && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+// In the desktop app the app itself keeps the alarms and rings them (see src/main/alarms.js)
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const alarmsModal = document.getElementById('alarms-modal');
+const alarmForm = document.getElementById('alarm-form');
+const alarmList = document.getElementById('alarm-list');
+const afTime = document.getElementById('af-time');
+const afLabel = document.getElementById('af-label');
+const afSound = document.getElementById('af-sound');
+const afDays = document.querySelectorAll('#af-days button');
+let alarmsCache = [];
+let editingAlarmId = null;
+let customSound = null;       // { sound, soundName } picked for the alarm being edited
+let stopPreview = null;
+
+function daysSummary(days) {
+    if (!days.length) return 'Once';
+    if (days.length === 7) return 'Every day';
+    const key = [...days].sort().join('');
+    if (key === '12345') return 'Weekdays';
+    if (key === '06') return 'Weekends';
+    return [1, 2, 3, 4, 5, 6, 0].filter(d => days.includes(d)).map(d => DAY_NAMES[d]).join(', ');
 }
 
-function ringAlarm() {
-    alarmWidget.classList.add('alarm-ringing');
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        [0, 0.35, 0.7].forEach(delay => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.frequency.value = 880;
-            gain.gain.setValueAtTime(0.2, ctx.currentTime + delay);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
-            osc.connect(gain).connect(ctx.destination);
-            osc.start(ctx.currentTime + delay);
-            osc.stop(ctx.currentTime + delay + 0.3);
-        });
-    } catch (e) { /* audio blocked until the page gets a click */ }
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Alarm', { body: formatAlarm(savedAlarm) });
+function soundLabel(a) {
+    return a.sound.startsWith('file:') ? a.soundName || 'Custom sound' : window.AlarmSound.LABELS[a.sound] || 'Chime';
+}
+
+async function refreshAlarms() {
+    if (!IS_APP || !window.desktop) return;
+    const { alarms, next } = await window.desktop.getAlarms();
+    alarmsCache = alarms;
+
+    // Widget: next alarm, e.g. "7:30 AM" with "Tue" underneath
+    if (next) {
+        const at = new Date(next.at);
+        const today = localDay(new Date());
+        const tomorrow = localDay(new Date(Date.now() + 86400000));
+        const when = localDay(at) === today ? '' : localDay(at) === tomorrow ? 'Tomorrow' : DAY_NAMES[at.getDay()];
+        alarmTimeText.innerHTML = '';
+        alarmTimeText.append(format12(`${pad2(at.getHours())}:${pad2(at.getMinutes())}`));
+        if (when || next.snoozed) {
+            const small = document.createElement('small');
+            small.className = 'alarm-when';
+            small.textContent = next.snoozed ? 'Snoozed' : when;
+            alarmTimeText.append(small);
+        }
+        alarmWidget.classList.add('alarm-on');
+        document.getElementById('alarms-next').textContent =
+            `Next: ${at.toLocaleString(undefined, { weekday: 'long', hour: 'numeric', minute: '2-digit' })}${next.label ? ` (${next.label})` : ''}`;
+    } else {
+        alarmTimeText.textContent = 'Off';
+        alarmWidget.classList.remove('alarm-on');
+        document.getElementById('alarms-next').textContent = alarms.length ? 'All alarms are off' : 'No alarms yet';
     }
-    setTimeout(() => alarmWidget.classList.remove('alarm-ringing'), 15000);
+    if (!alarmsModal.hidden) renderAlarmList();
 }
 
-function checkAlarm() {
-    // In the app the wallpaper window rings, so the editor stays quiet (no double alarms)
-    if (!savedAlarm || MODE === 'editor') return;
-    const now = new Date();
-    const current = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    if (current === savedAlarm && lastRungMinute !== current) {
-        lastRungMinute = current;
-        ringAlarm();
+function renderAlarmList() {
+    alarmList.innerHTML = '';
+    if (!alarmsCache.length) {
+        const empty = document.createElement('p');
+        empty.className = 'panel-empty';
+        empty.textContent = 'No alarms yet. Press "Add alarm" to create one.';
+        alarmList.appendChild(empty);
+        return;
+    }
+    const sorted = [...alarmsCache].sort((a, b) => a.time.localeCompare(b.time));
+    for (const a of sorted) {
+        const row = document.createElement('div');
+        row.className = 'panel-row' + (a.enabled ? '' : ' is-off');
+
+        const main = document.createElement('button');
+        main.type = 'button';
+        main.className = 'panel-row-main';
+        main.title = 'Edit';
+        const t = document.createElement('span');
+        t.className = 'alarm-row-time';
+        t.textContent = format12(a.time);
+        const info = document.createElement('span');
+        info.className = 'panel-row-info';
+        const l1 = document.createElement('b');
+        l1.textContent = a.label || 'Alarm';
+        const l2 = document.createElement('small');
+        l2.textContent = `${daysSummary(a.days)} · ${soundLabel(a)}`;
+        info.append(l1, l2);
+        main.append(t, info);
+        main.addEventListener('click', () => openAlarmForm(a));
+
+        const toggle = document.createElement('label');
+        toggle.className = 'switch';
+        toggle.title = a.enabled ? 'Turn off' : 'Turn on';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = a.enabled;
+        cb.setAttribute('aria-label', `${a.label || 'Alarm'} at ${format12(a.time)}`);
+        cb.addEventListener('change', () => saveAlarmList(alarmsCache.map(x => x.id === a.id ? { ...x, enabled: cb.checked } : x)));
+        const knob = document.createElement('span');
+        toggle.append(cb, knob);
+
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'icon-only-btn';
+        del.setAttribute('aria-label', 'Delete alarm');
+        del.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+        del.addEventListener('click', () => saveAlarmList(alarmsCache.filter(x => x.id !== a.id)));
+
+        row.append(main, toggle, del);
+        alarmList.appendChild(row);
     }
 }
 
-alarmWidget.addEventListener('click', () => {
-    alarmWidget.classList.remove('alarm-ringing');
-    alarmInput.value = savedAlarm || '07:00';
-    if (alarmInput.showPicker) alarmInput.showPicker(); else alarmInput.click();
+async function saveAlarmList(list) {
+    alarmsCache = await window.desktop.saveAlarms(list);
+    await refreshAlarms();
+    renderAlarmList();
+}
+
+function fillSoundOptions(selected) {
+    afSound.innerHTML = '';
+    for (const key of window.AlarmSound.TONES) {
+        afSound.add(new Option(window.AlarmSound.LABELS[key], key, false, key === selected));
+    }
+    if (customSound) afSound.add(new Option(customSound.soundName, customSound.sound, false, customSound.sound === selected));
+}
+
+function openAlarmForm(alarm) {
+    editingAlarmId = alarm ? alarm.id : null;
+    customSound = alarm && alarm.sound.startsWith('file:') ? { sound: alarm.sound, soundName: alarm.soundName } : null;
+    const inAnHour = new Date(Date.now() + 3600000);
+    afTime.value = alarm ? alarm.time : `${pad2(inAnHour.getHours())}:00`;
+    afLabel.value = alarm ? alarm.label : '';
+    const days = alarm ? alarm.days : [];
+    afDays.forEach(b => b.classList.toggle('active', days.includes(Number(b.dataset.day))));
+    fillSoundOptions(alarm ? alarm.sound : 'chime');
+    alarmForm.hidden = false;
+    afTime.focus();
+}
+
+function closeAlarmForm() {
+    stopSoundPreview();
+    alarmForm.hidden = true;
+    editingAlarmId = null;
+}
+
+function stopSoundPreview() {
+    if (stopPreview) { stopPreview(); stopPreview = null; }
+    document.getElementById('af-preview').innerHTML = '<i class="fa-solid fa-play"></i> Preview';
+}
+
+if (IS_APP && window.desktop) {
+    afDays.forEach(b => b.addEventListener('click', () => b.classList.toggle('active')));
+    document.getElementById('alarm-add-btn').addEventListener('click', () => openAlarmForm(null));
+    document.getElementById('af-cancel').addEventListener('click', closeAlarmForm);
+    document.getElementById('af-pick-sound').addEventListener('click', async () => {
+        const picked = await window.desktop.pickAlarmSound();
+        if (!picked) return;
+        if (picked.error) { showToast(picked.error); return; }
+        customSound = picked;
+        fillSoundOptions(picked.sound);
+    });
+    document.getElementById('af-preview').addEventListener('click', () => {
+        if (stopPreview) { stopSoundPreview(); return; }
+        stopPreview = window.AlarmSound.play(afSound.value, { loop: true });
+        document.getElementById('af-preview').innerHTML = '<i class="fa-solid fa-stop"></i> Stop';
+        setTimeout(stopSoundPreview, 8000);
+    });
+    afSound.addEventListener('change', () => { if (stopPreview) stopSoundPreview(); });
+    alarmForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const chosenSound = afSound.value;
+        const alarm = {
+            id: editingAlarmId || undefined,
+            time: afTime.value,
+            label: afLabel.value.trim(),
+            days: [...afDays].filter(b => b.classList.contains('active')).map(b => Number(b.dataset.day)),
+            enabled: true,
+            sound: chosenSound,
+            soundName: chosenSound.startsWith('file:') && customSound ? customSound.soundName : '',
+        };
+        const list = editingAlarmId
+            ? alarmsCache.map(a => a.id === editingAlarmId ? { ...alarm, id: a.id } : a)
+            : [...alarmsCache, alarm];
+        closeAlarmForm();
+        await saveAlarmList(list);
+        showToast(`Alarm set for ${format12(alarm.time)}${alarm.days.length ? `, ${daysSummary(alarm.days).toLowerCase()}` : ''}`);
+    });
+
+    window.desktop.onAlarmsChanged(refreshAlarms);
+    setInterval(refreshAlarms, 30000);
+
+    // Move an alarm set in an earlier version (stored only in this page) into the app
+    (async () => {
+        const old = localStorage.getItem('dashboard-alarm');
+        await refreshAlarms();
+        if (old && MODE === 'editor' && !alarmsCache.length) {
+            await saveAlarmList([{ time: old, label: '', days: [], enabled: true, sound: 'chime' }]);
+        }
+        if (old && MODE === 'editor') localStorage.removeItem('dashboard-alarm');
+    })();
+
+    if (MODE === 'editor') {
+        alarmWidget.title = 'Alarms';
+        onSingleClick(alarmWidget, () => openPanel('alarms'));
+    }
+}
+
+// --- Panels (alarms, calendars) in the editor ---
+function openPanel(name) {
+    const modal = document.getElementById(`${name}-modal`);
+    if (!modal) return;
+    document.querySelectorAll('.wp-modal').forEach(m => { if (m !== modal) m.hidden = true; });
+    modal.hidden = false;
+    if (name === 'alarms') { renderAlarmList(); refreshAlarms(); }
+    if (name === 'calendars') renderCalendarPanel();
+    modal.querySelector('[data-close]').focus();
+}
+
+function closePanel(modal) {
+    if (modal.id === 'alarms-modal') closeAlarmForm();
+    modal.hidden = true;
+}
+
+document.querySelectorAll('#alarms-modal, #calendars-modal').forEach(modal => {
+    modal.querySelector('[data-close]').addEventListener('click', () => closePanel(modal));
+    modal.addEventListener('click', (e) => { if (e.target === modal) closePanel(modal); });
 });
-alarmWidget.addEventListener('contextmenu', (e) => { e.preventDefault(); setAlarm(''); });
-alarmInput.addEventListener('change', () => setAlarm(alarmInput.value));
-setAlarm(savedAlarm);
-setInterval(checkAlarm, 5000);
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('#alarms-modal, #calendars-modal').forEach(m => { if (!m.hidden) closePanel(m); });
+});
+
+// --- Calendar ---
+let calendarEvents = [];
+let calendarStatus = [];
+let calendarsConnected = false;
+let renderedDay = '';
 
 function renderCalendar() {
     const now = new Date();
+    renderedDay = localDay(now);
     document.getElementById('calendar-month').innerText = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"][now.getMonth()];
     let startDayIndex = (new Date(now.getFullYear(), now.getMonth(), 1).getDay() || 7) - 1;
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -804,31 +1034,221 @@ function renderCalendar() {
         if (i === now.getDate()) span.classList.add('active-day');
         grid.appendChild(span);
     }
+    markCalendarEvents();
+    renderAgenda();
 }
-renderCalendar();
 
-// Mark days that have events (from the .ics folder chosen in the app's tray menu)
-async function markCalendarEvents() {
-    if (!IS_APP) return;
-    try {
-        const res = await fetch('/api/calendar/events');
-        const events = await res.json();
-        const now = new Date();
-        const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`;
-        const days = document.querySelectorAll('#calendar-grid span:not(:empty)');
-        events.forEach(ev => {
-            if (!ev.start.startsWith(prefix)) return;
-            const day = parseInt(ev.start.slice(8, 10), 10);
-            const cell = days[day - 1];
-            if (!cell) return;
-            cell.classList.add('has-event');
-            cell.title = cell.title ? `${cell.title}\n${ev.title}` : ev.title;
-        });
-    } catch (e) {
-        // No calendar folder; the calendar just shows dates
+function eventTimeLabel(ev) {
+    if (ev.allDay) return 'All day';
+    return new Date(ev.start).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+// Dots on days with events; hovering (in the editor) lists them
+function markCalendarEvents() {
+    const now = new Date();
+    const prefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-`;
+    const days = document.querySelectorAll('#calendar-grid span:not(:empty)');
+    days.forEach(cell => { cell.classList.remove('has-event'); cell.removeAttribute('title'); cell.style.removeProperty('--event-color'); });
+    for (const ev of calendarEvents) {
+        if (!ev.date.startsWith(prefix)) continue;
+        const cell = days[parseInt(ev.date.slice(8, 10), 10) - 1];
+        if (!cell) continue;
+        if (!cell.classList.contains('has-event')) cell.style.setProperty('--event-color', ev.color);
+        cell.classList.add('has-event');
+        const line = `${eventTimeLabel(ev)}  ${ev.title}`;
+        cell.title = cell.title ? `${cell.title}\n${line}` : line;
     }
 }
-markCalendarEvents();
+
+// "Upcoming" widget: what's left today and the next few days
+function renderAgenda() {
+    const list = document.getElementById('agenda-list');
+    const widget = document.querySelector('[data-id="agenda"]');
+    widget.classList.toggle('agenda-unused', !calendarsConnected);
+    list.innerHTML = '';
+
+    if (!calendarsConnected) {
+        const p = document.createElement('div');
+        p.className = 'agenda-empty';
+        p.textContent = 'Connect Google Calendar or Outlook to see your events here.';
+        if (MODE === 'editor') {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'agenda-connect';
+            b.textContent = 'Connect a calendar';
+            b.addEventListener('click', () => openPanel('calendars'));
+            p.appendChild(b);
+        }
+        list.appendChild(p);
+        return;
+    }
+
+    const now = new Date();
+    const today = localDay(now);
+    const tomorrow = localDay(new Date(now.getTime() + 86400000));
+    const upcoming = calendarEvents
+        .filter(ev => new Date(ev.end) > now && ev.date <= localDay(new Date(now.getTime() + 14 * 86400000)))
+        .slice(0, 8);
+
+    if (!upcoming.length) {
+        const p = document.createElement('div');
+        p.className = 'agenda-empty';
+        p.textContent = 'Nothing in the next two weeks.';
+        list.appendChild(p);
+        return;
+    }
+
+    let lastDay = '';
+    for (const ev of upcoming) {
+        const day = ev.date < today ? today : ev.date;  // multi-day events that started earlier
+        if (day !== lastDay) {
+            lastDay = day;
+            const h = document.createElement('div');
+            h.className = 'agenda-day';
+            const [y, m, d] = day.split('-').map(Number);
+            h.textContent = day === today ? 'Today' : day === tomorrow ? 'Tomorrow'
+                : new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+            list.appendChild(h);
+        }
+        const item = document.createElement('div');
+        item.className = 'agenda-item';
+        item.style.setProperty('--event-color', ev.color);
+        const t = document.createElement('span');
+        t.className = 'agenda-time';
+        t.textContent = eventTimeLabel(ev);
+        const title = document.createElement('span');
+        title.className = 'agenda-title';
+        title.textContent = ev.title;
+        title.title = `${ev.title} (${ev.calendar})`;
+        item.append(t, title);
+        list.appendChild(item);
+    }
+}
+
+async function refreshCalendarEvents(force = false) {
+    if (!IS_APP) return;
+    try {
+        const res = await fetch(`/api/calendar/events${force ? '?refresh=1' : ''}`);
+        const data = await res.json();
+        calendarEvents = data.events || [];
+        calendarsConnected = (data.feeds || []).length > 0 || !!data.folder;
+        calendarStatus = data.feeds || [];
+    } catch (e) {
+        // Keep whatever was shown before
+    }
+    markCalendarEvents();
+    renderAgenda();
+    if (!document.getElementById('calendars-modal').hidden) renderCalendarPanel();
+}
+
+renderCalendar();
+if (IS_APP) {
+    refreshCalendarEvents();
+    setInterval(refreshCalendarEvents, 5 * 60 * 1000);
+    if (window.desktop) window.desktop.onCalendarsChanged(() => refreshCalendarEvents());
+} else {
+    document.querySelector('[data-id="agenda"]').classList.add('agenda-unused');
+    renderAgenda();
+}
+
+// The wallpaper stays open for days: redraw the calendar when the date changes, and keep "Upcoming" current
+setInterval(() => {
+    if (localDay(new Date()) !== renderedDay) renderCalendar();
+    else renderAgenda();
+}, 60000);
+
+// --- Calendars panel ---
+function timeAgo(iso) {
+    const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} min ago`;
+    return `${Math.round(mins / 60)} h ago`;
+}
+
+async function renderCalendarPanel() {
+    if (!window.desktop) return;
+    const { feeds, folder } = await window.desktop.getCalendars();
+    const list = document.getElementById('calendar-list');
+    list.innerHTML = '';
+    if (!feeds.length) {
+        const p = document.createElement('p');
+        p.className = 'panel-empty';
+        p.textContent = 'No calendars connected yet.';
+        list.appendChild(p);
+    }
+    for (const f of feeds) {
+        const status = calendarStatus.find(s => s.id === f.id);
+        const row = document.createElement('div');
+        row.className = 'panel-row';
+        const dot = document.createElement('span');
+        dot.className = 'cal-dot';
+        dot.style.background = f.color;
+        const info = document.createElement('span');
+        info.className = 'panel-row-info';
+        const name = document.createElement('b');
+        name.textContent = f.name;
+        const sub = document.createElement('small');
+        if (status?.error) {
+            sub.className = 'is-error';
+            sub.textContent = status.error;
+        } else {
+            sub.textContent = `${f.host}${status ? ` · updated ${timeAgo(status.updated)}` : ''}`;
+        }
+        info.append(name, sub);
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'panel-small-btn';
+        del.textContent = 'Remove';
+        del.addEventListener('click', async () => {
+            await window.desktop.removeCalendar(f.id);
+            renderCalendarPanel();
+        });
+        row.append(dot, info, del);
+        list.appendChild(row);
+    }
+    document.getElementById('calendar-folder').textContent = folder || 'Not set';
+    document.getElementById('cal-folder-clear').hidden = !folder;
+}
+
+if (IS_APP && window.desktop) {
+    const calForm = document.getElementById('calendar-form');
+    const calError = document.getElementById('cf-error');
+    const calSubmit = document.getElementById('cf-submit');
+    calForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        calError.textContent = '';
+        calSubmit.disabled = true;
+        calSubmit.textContent = 'Checking...';
+        const result = await window.desktop.addCalendar({
+            url: document.getElementById('cf-url').value,
+            name: document.getElementById('cf-name').value,
+        });
+        calSubmit.disabled = false;
+        calSubmit.textContent = 'Connect';
+        if (result.error) {
+            calError.textContent = result.error;
+            return;
+        }
+        calForm.reset();
+        showToast(`Connected "${result.feed.name}"`);
+        await refreshCalendarEvents();
+        renderCalendarPanel();
+    });
+    document.getElementById('cal-folder-btn').addEventListener('click', async () => {
+        if (await window.desktop.chooseCalendarFolder()) renderCalendarPanel();
+    });
+    document.getElementById('cal-folder-clear').addEventListener('click', async () => {
+        await window.desktop.clearCalendarFolder();
+        renderCalendarPanel();
+    });
+
+    if (MODE === 'editor') {
+        onSingleClick(document.querySelector('[data-id="calendar"]'), () => openPanel('calendars'));
+        document.getElementById('editor-alarms-btn').addEventListener('click', () => openPanel('alarms'));
+        document.getElementById('editor-calendars-btn').addEventListener('click', () => openPanel('calendars'));
+        window.desktop.onOpenPanel(openPanel);
+    }
+}
 
 async function updateBattery() {
     if ('getBattery' in navigator) {
