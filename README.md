@@ -24,6 +24,8 @@ After installing, the dashboard becomes your wallpaper and an icon appears in th
   - **Fill screen or Centered:** choose it next to your current wallpaper, or with **Show as** when picking a search result. Wide images fill the screen and tall ones are centered by default.
   - **Move and resize widgets:** double-click a widget, drag it, resize from the corner, press Esc to finish. "Reset layout" restores the defaults.
   - Add **reminders**.
+  - **Weather:** click it to open the Windows Weather app. It uses **Windows Location** when that's on (Settings → Privacy & security → Location, with *Let desktop apps access your location*), otherwise an approximate location from your internet connection; the pin button opens that setting.
+  - **Battery:** click it to open Settings → Power & battery. A bolt shows while charging, and hovering shows the time left.
   - Press **Done** to go back to your desktop.
 - **Alarms...** (tray menu, the bell widget, or the Alarms button in the editor):
   - Add as many alarms as you like, each with a time, label and repeat days (for example weekdays only), or ring once on a chosen **date** (tomorrow, next week, any day).
@@ -124,6 +126,7 @@ src/
     google.js        Google sign-in (PKCE, encrypted token) and Calendar read/write
     when.js          understands typed dates and times ("tomorrow 7am", "every weekday")
     updater.js       automatic updates from GitHub Releases
+    windows-location.js  exact location from Windows' Location service
     net-safety.js    only public addresses are downloaded
     desktop-host.js  places the wallpaper behind the desktop icons (Win32 via koffi)
     api.js           app:// scheme: serves the dashboard and its /api/* endpoints

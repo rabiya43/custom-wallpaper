@@ -1570,3 +1570,30 @@ body.mode-browser .agenda-unused { display: none !important; }
 .agenda-item.is-clickable { cursor: pointer; border-radius: 4px; }
 .agenda-item.is-clickable:hover { background: rgba(255, 255, 255, 0.08); }
 body.mode-editor .calendar-grid span:not(:empty) { cursor: pointer; }
+
+/* ============ Weather & battery linked to Windows ============ */
+.weather-loc-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; }
+.weather-location-hint {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--accent-color);
+    font-size: 0.72rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.weather-location-hint:hover { background: var(--accent-color); color: #111; }
+#battery-widget { position: relative; }
+#battery-widget.is-charging i::after {
+    content: '\f0e7';  /* bolt */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    font-size: 0.62rem;
+    color: #FFD166;
+    margin-left: -2px;
+    margin-top: -4px;
+}
+#battery-widget.is-low i, #battery-widget.is-low span { color: #ff8a80; }

@@ -1783,19 +1783,38 @@ if (IS_APP && window.desktop && MODE === 'editor') {
     });
 }
 
+// --- Battery (from Windows); clicking it in the editor opens Settings > Power & battery ---
+function durationText(seconds) {
+    const mins = Math.round(seconds / 60);
+    if (mins < 60) return `${mins} min`;
+    return `${Math.floor(mins / 60)} h ${mins % 60} min`;
+}
+
 async function updateBattery() {
-    if ('getBattery' in navigator) {
-        const battery = await navigator.getBattery();
-        const update = () => {
-            document.getElementById('battery-level').innerText = `${Math.round(battery.level * 100)}%`;
-            document.getElementById('battery-icon').className = 'fa-solid ' + (battery.charging || battery.level > 0.75 ? 'fa-battery-full' : battery.level > 0.5 ? 'fa-battery-three-quarters' : battery.level > 0.25 ? 'fa-battery-half' : 'fa-battery-quarter');
-        };
-        update();
-        battery.addEventListener('levelchange', update);
-        battery.addEventListener('chargingchange', update);
-    }
+    if (!('getBattery' in navigator)) return;
+    const battery = await navigator.getBattery();
+    const widget = document.getElementById('battery-widget');
+    const update = () => {
+        const pct = Math.round(battery.level * 100);
+        document.getElementById('battery-level').innerText = `${pct}%`;
+        document.getElementById('battery-icon').className = 'fa-solid ' + (battery.level > 0.9 ? 'fa-battery-full' : battery.level > 0.6 ? 'fa-battery-three-quarters' : battery.level > 0.35 ? 'fa-battery-half' : battery.level > 0.1 ? 'fa-battery-quarter' : 'fa-battery-empty');
+        widget.classList.toggle('is-charging', battery.charging);
+        widget.classList.toggle('is-low', !battery.charging && battery.level <= 0.2);
+        let tip = battery.charging ? `Charging, ${pct}%` : `On battery, ${pct}%`;
+        if (battery.charging && Number.isFinite(battery.chargingTime) && battery.chargingTime > 0) tip += ` (full in ${durationText(battery.chargingTime)})`;
+        if (!battery.charging && Number.isFinite(battery.dischargingTime)) tip += ` (about ${durationText(battery.dischargingTime)} left)`;
+        widget.title = MODE === 'editor' ? `${tip}. Click for battery settings.` : tip;
+    };
+    update();
+    ['levelchange', 'chargingchange', 'chargingtimechange', 'dischargingtimechange'].forEach(ev => battery.addEventListener(ev, update));
 }
 updateBattery();
+
+if (MODE === 'editor' && window.desktop) {
+    const batteryWidget = document.getElementById('battery-widget');
+    batteryWidget.classList.add('interactive-btn');
+    onSingleClick(batteryWidget, () => window.desktop.openWindows('battery'));
+}
 
 // --- Reminders ---
 const todoInput = document.getElementById('todo-input');
@@ -1898,12 +1917,13 @@ async function fetchWeather(lat, lon, fallbackName) {
 async function loadWeather() {
     const useDefault = () => fetchWeather(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon, DEFAULT_LOCATION.name);
     if (IS_APP) {
-        // Desktop apps don't get browser geolocation; use an approximate location from the IP address
+        // Windows Location when it's on; otherwise an approximate location from the internet connection
         try {
             const res = await fetch('/api/location');
             if (!res.ok) throw new Error();
             const loc = await res.json();
-            return fetchWeather(loc.lat, loc.lon, loc.name);
+            showLocationSource(loc);
+            return fetchWeather(loc.lat, loc.lon, loc.source === 'windows' ? undefined : loc.name);
         } catch (e) {
             return useDefault();
         }
@@ -1915,8 +1935,41 @@ async function loadWeather() {
         { timeout: 8000 }
     );
 }
+function showLocationSource(loc) {
+    const exact = loc.source === 'windows';
+    const hint = document.getElementById('weather-location-hint');
+    const widget = document.getElementById('weather-container');
+    widget.classList.toggle('location-exact', exact);
+    if (MODE === 'editor') {
+        // Offer to turn on Windows Location when the weather is only approximate
+        hint.hidden = exact;
+        widget.title = exact
+            ? 'Weather for your location from Windows. Click to open the Weather app.'
+            : 'Approximate location from your internet connection. Click to open the Weather app, or the pin to turn on Windows Location for exact weather.';
+    } else {
+        widget.title = exact ? 'Weather for your location (Windows Location)' : 'Weather for your approximate location';
+    }
+}
+
 loadWeather();
 setInterval(loadWeather, 30 * 60 * 1000);
+
+// In the editor: the weather widget opens the Windows Weather app; the pin opens Location settings
+if (MODE === 'editor' && window.desktop) {
+    const weatherWidget = document.getElementById('weather-container');
+    weatherWidget.classList.add('interactive-btn');
+    onSingleClick(weatherWidget, (e) => {
+        if (e.target.closest('#weather-location-hint')) return;
+        window.desktop.openWindows('weather');
+    });
+    document.getElementById('weather-location-hint').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await window.desktop.openWindows('location');
+        showToast('Turn on "Location services" and "Let desktop apps access your location", then the weather updates within a minute.');
+        // Check again shortly, so switching it on takes effect without restarting
+        setTimeout(loadWeather, 60000);
+    });
+}
 
 // --- Editor toolbar (desktop app) ---
 if (MODE === 'editor' && window.desktop) {

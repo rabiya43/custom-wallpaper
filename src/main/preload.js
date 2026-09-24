@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('desktop', {
     onAlarmsChanged: cb => ipcRenderer.on('alarms:changed', () => cb()),
 
     minimizeEditor: () => ipcRenderer.send('editor:minimize'),
+    openWindows: target => ipcRenderer.invoke('windows:open', target),  // 'weather' | 'battery' | 'location'
     parseWhen: (text, mode) => ipcRenderer.invoke('when:parse', { text, mode }),
 
     // Google Calendar
