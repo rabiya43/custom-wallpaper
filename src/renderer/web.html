@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search the web</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #181b24;
+            color: #fff;
+            height: 56px;
+            overflow: hidden;
+        }
+        .bar {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        button, select, input {
+            font-family: inherit;
+            font-size: 0.85rem;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 9px;
+            height: 34px;
+        }
+        button { padding: 0 12px; cursor: pointer; }
+        button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
+        button:disabled { opacity: 0.4; cursor: default; }
+        select { padding: 0 8px; }
+        select option { background: #181b24; }
+        form { display: flex; gap: 8px; flex: 0 1 460px; }
+        input { flex: 1; min-width: 0; padding: 0 12px; outline: none; }
+        input:focus { border-color: #A5C271; }
+        .go { background: #A5C271; color: #111; font-weight: 700; border: none; }
+        .go:hover { background: #b6d184 !important; }
+        .hint {
+            margin-left: auto;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            white-space: nowrap;
+        }
+        .hint b { color: #A5C271; }
+        .toast {
+            position: fixed;
+            top: 11px;
+            right: 14px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: #A5C271;
+            color: #111;
+            font-size: 0.8rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+        @media (max-width: 1000px) { .hint { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="bar">
+        <button id="back" title="Back" disabled>&larr;</button>
+        <form id="form">
+            <input id="q" type="search" placeholder="Search images" autocomplete="off" aria-label="Search images">
+            <select id="engine" aria-label="Search engine">
+                <option value="google">Google</option>
+                <option value="bing">Bing</option>
+                <option value="duckduckgo">DuckDuckGo</option>
+            </select>
+            <button class="go" type="submit">Search</button>
+        </form>
+        <span class="hint">Open an image, then <b>right-click &rarr; Set as wallpaper</b></span>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="web.js"></script>
+</body>
+</html>

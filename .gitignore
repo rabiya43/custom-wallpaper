@@ -1,0 +1,4 @@
+node_modules/
+dist/
+calendars/
+__pycache__/

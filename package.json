@@ -1,0 +1,45 @@
+{
+  "name": "live-wallpaper-dashboard",
+  "productName": "Live Wallpaper Dashboard",
+  "version": "1.0.0",
+  "description": "A live desktop wallpaper for Windows with clock, weather, calendar, reminders and wallpaper search.",
+  "author": "Rabiya Tahir",
+  "license": "MIT",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.rabiyatahir.livewallpaperdashboard",
+    "productName": "Live Wallpaper Dashboard",
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Live Wallpaper Dashboard"
+    }
+  },
+  "dependencies": {
+    "koffi": "^3.3.1",
+    "node-ical": "^0.27.2"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  }
+}

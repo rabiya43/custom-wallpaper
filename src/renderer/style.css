@@ -352,7 +352,7 @@ body {
 }
 .calendar-grid .active-day {
     background: var(--primary-text) !important;
-    color: var(--bg-color);
+    color: var(--bg-color-1, #2D5A46);
     font-weight: bold;
 }
 
@@ -583,15 +583,15 @@ body {
 .palette-chips-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
+    gap: 5px;
 }
 .palette-chip {
     background: rgba(0, 0, 0, 0.22);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 9px;
-    padding: 6px 6px;
+    padding: 6px 5px;
     color: var(--primary-text);
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-family: var(--base-font);
     font-weight: 500;
     display: flex;
@@ -655,38 +655,464 @@ body {
     border: 1px solid rgba(255,255,255,0.4);
     border-radius: 50%;
 }
-.search-wrap {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.22);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    overflow: hidden;
-}
-.search-wrap input {
-    width: 100%;
-    background: transparent;
-    border: none;
-    padding: 5px 8px;
-    font-size: 0.75rem;
-    color: #fff;
-    font-family: var(--base-font);
-    outline: none;
-}
-.search-wrap input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-}
-.search-wrap button {
-    background: transparent;
-    border: none;
-    color: var(--accent-color);
-    padding: 5px 8px;
-    cursor: pointer;
-}
 .drop-hint {
     font-size: 0.68rem;
     color: rgba(255, 255, 255, 0.5);
     text-align: center;
     margin-top: -2px;
+}
+
+/* Alarm widget states */
+.hidden-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+#alarm-widget.alarm-on i {
+    color: var(--glow-color);
+}
+#alarm-widget.alarm-ringing i {
+    animation: alarm-ring 0.5s ease-in-out infinite;
+}
+@keyframes alarm-ring {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-18deg); }
+    75% { transform: rotate(18deg); }
+}
+
+/* Theme panel footer */
+.panel-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.panel-footer .drop-hint {
+    margin-top: 0;
+    text-align: left;
+    line-height: 1.35;
+}
+.panel-footer .panel-btn {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+}
+
+/* Keyboard focus visibility */
+button:focus-visible,
+.panel-btn:focus-visible,
+.palette-chip:focus-visible,
+input:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+/* Small screens: stack widgets instead of overlapping them */
+@media (max-width: 720px) {
+    body { overflow-y: auto; height: auto; min-height: 100vh; }
+    .dashboard-container { height: auto; min-height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .drag-widget { position: relative !important; top: auto !important; left: auto !important; right: auto !important; bottom: auto !important; width: 100% !important; max-width: 420px; margin: 0 auto; }
+    .todo-widget { min-height: 200px; }
+    .date-container, .time-container { text-align: center !important; }
+    .time-display { justify-content: center !important; }
+}
+/* Calendar days with events (from the .ics folder chosen in the app) */
+.calendar-grid .has-event {
+    position: relative;
+}
+.calendar-grid .has-event::after {
+    content: '';
+    position: absolute;
+    bottom: 1px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: var(--glow-color);
+}
+
+/* ============ Wallpaper search ============ */
+[hidden] { display: none !important; }
+
+.wp-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    padding: 4px 4px 4px 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.wp-search:focus-within {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+.wp-search > i {
+    color: var(--accent-color);
+    font-size: 0.85rem;
+}
+.wp-search input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.8rem;
+    padding: 7px 0;
+}
+.wp-search input::placeholder { color: rgba(255, 255, 255, 0.5); }
+.wp-search button {
+    background: var(--accent-color);
+    color: #111;
+    border: none;
+    border-radius: 9px;
+    padding: 7px 14px;
+    font-family: var(--base-font);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.1s ease;
+}
+.wp-search button:hover { filter: brightness(1.12); }
+.wp-search button:active { transform: scale(0.96); }
+.colors-hint {
+    flex: 1;
+    font-size: 0.66rem;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Results modal */
+.wp-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(10, 12, 18, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.wp-dialog {
+    width: min(1040px, 100%);
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: rgba(24, 27, 36, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 22px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-family: var(--base-font);
+    overflow: hidden;
+}
+.wp-dialog-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 24px 8px;
+}
+.wp-dialog-header h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+.wp-status {
+    margin-top: 2px;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+.wp-close {
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.wp-close:hover { background: rgba(255, 255, 255, 0.18); }
+.wp-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 24px 12px;
+}
+.wp-filter {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: var(--base-font);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.wp-filter small {
+    font-weight: 400;
+    opacity: 0.6;
+    margin-left: 4px;
+}
+.wp-filter:hover { background: rgba(255, 255, 255, 0.14); }
+.wp-filter.active {
+    background: var(--accent-color);
+    border-color: transparent;
+    color: #111;
+}
+.wp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
+    padding: 4px 24px 16px;
+    align-content: start;
+}
+.wp-card {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 0;
+    padding: 0 0 62.5% 0;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.wp-card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.wp-card:hover, .wp-card:focus-visible {
+    transform: translateY(-3px);
+    border-color: var(--accent-color);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+.wp-meta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 18px 10px 7px;
+    font-family: var(--base-font);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #fff;
+    text-align: left;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+}
+.wp-card.loading { pointer-events: none; }
+.wp-card.loading::after {
+    content: 'Applying...';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.62);
+    font-family: var(--base-font);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+}
+.wp-skeleton {
+    cursor: default;
+    animation: wp-pulse 1.2s ease-in-out infinite;
+}
+@keyframes wp-pulse {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+}
+.wp-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px 16px;
+    color: rgba(255, 255, 255, 0.75);
+}
+.wp-empty strong {
+    display: block;
+    font-size: 1rem;
+    color: #fff;
+    margin-bottom: 6px;
+}
+.wp-empty p {
+    font-size: 0.85rem;
+    max-width: 440px;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+.wp-dialog-footer {
+    padding: 10px 24px 16px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.45);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translate(-50%, 20px);
+    z-index: 100001;
+    padding: 11px 20px;
+    border-radius: 999px;
+    background: rgba(20, 22, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.85rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+@media (max-width: 720px) {
+    .wp-modal { padding: 0; }
+    .wp-dialog { border-radius: 0; height: 100%; }
+    .wp-grid { grid-template-columns: repeat(2, 1fr); padding: 4px 14px 14px; }
+    .wp-dialog-header, .wp-filters { padding-left: 14px; padding-right: 14px; }
+}
+/* ============ Desktop app ============ */
+.wp-scroll {
+    flex: 1;
+    overflow-y: auto;
+}
+.wp-more {
+    display: block;
+    margin: 0 auto 18px;
+    padding: 9px 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.wp-more:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
+.wp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.wp-web-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--accent-color);
+    background: transparent;
+    color: var(--accent-color);
+    font-family: var(--base-font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.wp-web-btn:hover { background: var(--accent-color); color: #111; }
+
+/* Widgets are placed inside the area not covered by the taskbar (insets set by script.js) */
+body.mode-wallpaper .dashboard-container,
+body.mode-editor .dashboard-container {
+    position: absolute;
+    width: auto;
+    height: auto;
+}
+
+/* Wallpaper mode: display only */
+body.mode-wallpaper .theme-panel,
+body.mode-wallpaper .add-todo-container,
+body.mode-wallpaper .close-btn,
+body.mode-wallpaper .todo-item .delete-btn,
+body.mode-wallpaper #drag-drop-overlay,
+body.mode-wallpaper .wp-modal,
+body.mode-wallpaper .toast {
+    display: none !important;
+}
+body.mode-wallpaper .drag-widget { cursor: default; }
+
+/* Editor toolbar */
+.editor-bar { display: none; }
+body.mode-editor .editor-bar {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 7px 8px 7px 18px;
+    border-radius: 999px;
+    background: rgba(20, 22, 30, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+.editor-bar-title { font-weight: 700; }
+.editor-bar-title i { color: var(--accent-color); margin-right: 4px; }
+.editor-bar-hint { color: rgba(255, 255, 255, 0.55); }
+.editor-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, filter 0.2s ease;
+}
+.editor-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.editor-btn-primary {
+    background: var(--accent-color);
+    border-color: transparent;
+    color: #111;
+}
+.editor-btn-primary:hover { background: var(--accent-color); filter: brightness(1.1); }
+/* Wallpaper mode: say something friendly instead of showing an empty reminders box */
+body.mode-wallpaper #todo-list-container:empty::before {
+    content: 'No reminders';
+    font-size: 0.8rem;
+    opacity: 0.55;
+}
+
+/* Alarm time like "10:30 PM" stays on one line */
+#alarm-time {
+    white-space: nowrap;
+    font-size: 0.8rem !important;
 }
