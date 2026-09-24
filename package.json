@@ -1,7 +1,7 @@
 {
   "name": "live-wallpaper-dashboard",
   "productName": "Live Wallpaper Dashboard",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A live desktop wallpaper for Windows with clock, weather, calendar, reminders and wallpaper search.",
   "author": "Rabiya Tahir",
   "license": "MIT",
@@ -35,6 +35,7 @@
     }
   },
   "dependencies": {
+    "chrono-node": "^2.10.1",
     "koffi": "^3.3.1",
     "node-ical": "^0.27.2"
   },

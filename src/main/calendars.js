@@ -1,6 +1,7 @@
 // Calendar events from the user's calendars.
 //
-// Feeds are private iCal links ("secret address in iCal format" in Google Calendar,
+// Google Calendar (signed in, editable) is handled in google.js and merged in here.
+// Other calendars can be added read-only as private iCal links ("secret address in iCal format" in Google Calendar,
 // "Publish calendar" ICS link in Outlook), refreshed every few minutes. A folder of .ics
 // files is also supported. Repeating events are expanded into real dates.
 const fs = require('fs');
@@ -9,6 +10,7 @@ const crypto = require('crypto');
 const ical = require('node-ical');
 const config = require('./config');
 const { safeFetch } = require('./net-safety');
+const google = require('./google');
 
 const REFRESH_MS = 10 * 60 * 1000;
 const MAX_ICS_BYTES = 15 * 1024 * 1024;
@@ -161,6 +163,22 @@ async function allEvents({ force = false } = {}) {
     const list = feeds();
     const status = [];
     const events = [];
+
+    // Google Calendar (editable)
+    let googleStatus = null;
+    const account = google.account();
+    if (account) {
+        const now = new Date();
+        const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - PAST_DAYS);
+        const to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + FUTURE_DAYS);
+        try {
+            events.push(...await google.events(from, to, { force }));
+            googleStatus = { email: account.email, error: null };
+        } catch (e) {
+            googleStatus = { email: google.account()?.email || account.email, error: e.message, signedOut: !google.account() };
+        }
+    }
+
     await Promise.all(list.map(async feed => {
         let entry = cache.get(feed.id);
         if (force || !entry || Date.now() - entry.time > REFRESH_MS) {
@@ -178,7 +196,7 @@ async function allEvents({ force = false } = {}) {
     }));
     events.push(...folderEvents());
     events.sort((a, b) => a.start.localeCompare(b.start));
-    return { events, feeds: status, folder: config.get('calendarDir') || '' };
+    return { events, feeds: status, folder: config.get('calendarDir') || '', google: googleStatus };
 }
 
 module.exports = { feeds, addFeed, removeFeed, allEvents, expand };

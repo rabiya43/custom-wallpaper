@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -126,69 +126,26 @@
                 <button type="submit" id="wp-search-btn">Find</button>
             </form>
 
-            <!-- Upload & Image Actions -->
-            <div class="panel-row">
-                <label class="panel-btn upload-btn" title="Choose an image file from your PC">
+            <!-- Built-in wallpapers (drawn by the app, so they look sharp at any resolution) -->
+            <div class="builtin-label">Built-in wallpapers</div>
+            <div class="builtin-grid" id="builtin-grid">
+                <label class="builtin-tile builtin-upload" title="Use an image from your PC">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <span>Upload Image</span>
-                    <input type="file" id="wallpaper-file-input" accept="image/*" style="display:none;">
+                    <span>Upload</span>
+                    <input type="file" id="wallpaper-file-input" accept="image/*" hidden>
                 </label>
-                <button class="panel-btn icon-btn" id="toggle-fit-btn" title="Fill the whole screen with the image, or show it centered at its natural shape">
-                    <i class="fa-solid fa-expand"></i>
-                    <span id="fit-label">Fill screen</span>
-                </button>
-                <button class="panel-btn icon-btn danger-btn" id="clear-wallpaper-btn" title="Clear image">
+            </div>
+
+            <!-- The current wallpaper and how it is shown -->
+            <div class="current-wp" id="current-wp">
+                <div class="current-wp-thumb" id="current-wp-thumb" aria-hidden="true"></div>
+                <div class="fit-toggle" role="group" aria-label="How to show the wallpaper">
+                    <button type="button" data-fit="cover" title="Fill the whole screen (edges may be cropped)"><i class="fa-solid fa-expand"></i> Fill screen</button>
+                    <button type="button" data-fit="center" title="Show the whole image in the middle"><i class="fa-solid fa-compress"></i> Centered</button>
+                </div>
+                <button class="panel-btn icon-btn danger-btn" id="clear-wallpaper-btn" title="Remove wallpaper image" aria-label="Remove wallpaper image">
                     <i class="fa-solid fa-trash-can"></i>
                 </button>
-            </div>
-
-            <!-- Quick Character Palette Presets -->
-            <div class="palette-chips-container">
-                <button class="palette-chip active" data-char="buttercup" title="Buttercup (Emerald & Lime)">
-                    <span class="chip-color" style="background: linear-gradient(135deg, #2D5A46, #A5C271);"></span>
-                    Buttercup
-                </button>
-                <button class="palette-chip" data-char="blossom" title="Blossom (Rose & Coral)">
-                    <span class="chip-color" style="background: linear-gradient(135deg, #D87093, #FF7F50);"></span>
-                    Blossom
-                </button>
-                <button class="palette-chip" data-char="bubbles" title="Bubbles (Ocean & Gold)">
-                    <span class="chip-color" style="background: linear-gradient(135deg, #4682B4, #FFD700);"></span>
-                    Bubbles
-                </button>
-                <button class="palette-chip" data-char="snow white" title="Snow White (Royal Blue & Amber)">
-                    <span class="chip-color" style="background: linear-gradient(135deg, #2B3A67, #FFD166);"></span>
-                    Snow
-                </button>
-                <button class="palette-chip" data-char="tweety" title="Tweety (Canary Yellow & Sky)">
-                    <span class="chip-color" style="background: linear-gradient(135deg, #E6AF2E, #4FC3F7);"></span>
-                    Tweety
-                </button>
-                <button class="palette-chip" data-char="annabelle" title="Annabelle (Gothic Crimson & Noir)">
-                    <span class="chip-color" style="background: linear-gradient(135deg, #2D0A0A, #C44545);"></span>
-                    Annabelle
-                </button>
-                <button class="palette-chip" data-char="midnight" title="Midnight Noir (Dark Velvet & Silver)">
-                    <span class="chip-color" style="background: linear-gradient(135deg, #11141A, #3A3F4D);"></span>
-                    Midnight
-                </button>
-                <button class="palette-chip" data-char="cyberpunk" title="Cyberpunk (Deep Purple & Neon Cyan)">
-                    <span class="chip-color" style="background: linear-gradient(135deg, #4A148C, #00E5FF);"></span>
-                    Cyber
-                </button>
-            </div>
-
-            <!-- Custom Color Pickers -->
-            <div class="custom-colors-row">
-                <label title="Gradient Start Color">
-                    <span>Color 1</span>
-                    <input type="color" id="bg-color-1-picker" value="#2D5A46">
-                </label>
-                <label title="Gradient End Color">
-                    <span>Color 2</span>
-                    <input type="color" id="bg-color-2-picker" value="#509F8C">
-                </label>
-                <span class="colors-hint">Colors update automatically when you pick a wallpaper</span>
             </div>
 
             <div class="panel-footer">
@@ -239,10 +196,19 @@
             </header>
             <div class="panel-body">
                 <form id="alarm-form" class="panel-form" hidden>
+                    <label class="field">
+                        <span>When <small class="field-hint">type it, or use the boxes below</small></span>
+                        <input type="text" id="af-when" autocomplete="off" placeholder="e.g. tomorrow 7am · every weekday 7:30 · in 20 min · 25/12 8pm">
+                        <small class="when-preview" id="af-when-preview" aria-live="polite"></small>
+                    </label>
                     <div class="form-row">
                         <label class="field">
                             <span>Time</span>
                             <input type="time" id="af-time" required>
+                        </label>
+                        <label class="field" id="af-date-field">
+                            <span>Date</span>
+                            <input type="date" id="af-date">
                         </label>
                         <label class="field field-grow">
                             <span>Label</span>
@@ -260,7 +226,7 @@
                             <button type="button" data-day="6">Sat</button>
                             <button type="button" data-day="0">Sun</button>
                         </div>
-                        <small class="field-hint">Pick no days to ring once.</small>
+                        <small class="field-hint">Pick no days to ring once, on the date above.</small>
                     </div>
                     <div class="field">
                         <span>Sound</span>
@@ -294,10 +260,45 @@
                 </div>
             </header>
             <div class="panel-body">
+                <!-- Google Calendar: signed in, fully editable -->
+                <section class="google-box" id="google-box">
+                    <div class="google-signed-out" id="google-signed-out">
+                        <div class="google-intro">
+                            <strong>Google Calendar</strong>
+                            <p>Sign in with your Google account to see your events on the wallpaper and add, change or delete them from here. Changes show up on your phone too.</p>
+                        </div>
+                        <button type="button" class="google-btn" id="google-sign-in">
+                            <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.6c-.5 2.9-2.2 5.4-4.7 7.1l7.6 5.9c4.4-4.1 7-10.1 7-17.5z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-2.9-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
+                            <span>Sign in with Google</span>
+                        </button>
+                        <p class="google-note" id="google-waiting" hidden>
+                            A Google sign-in page opened in your browser. Finish signing in there, then come back here.
+                            <button type="button" class="link-btn" id="google-cancel">Cancel</button>
+                        </p>
+                        <p class="form-error" id="google-error" role="alert"></p>
+                        <p class="google-note" id="google-not-set-up" hidden>Google sign-in isn't set up in this copy of the app yet. You can still add calendars read-only with a private link below.</p>
+                    </div>
+                    <div class="google-signed-in" id="google-signed-in" hidden>
+                        <div class="google-account">
+                            <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.6c-.5 2.9-2.2 5.4-4.7 7.1l7.6 5.9c4.4-4.1 7-10.1 7-17.5z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-2.9-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>
+                            <div>
+                                <strong>Google Calendar</strong>
+                                <small id="google-email"></small>
+                            </div>
+                            <button type="button" class="panel-small-btn" id="google-add-event"><i class="fa-solid fa-plus"></i> Add event</button>
+                            <button type="button" class="panel-small-btn" id="google-sign-out">Sign out</button>
+                        </div>
+                        <div class="google-calendars" id="google-calendars"></div>
+                        <p class="form-error" id="google-sync-error" role="alert"></p>
+                    </div>
+                </section>
+
                 <div id="calendar-list" class="panel-list"></div>
 
-                <form id="calendar-form" class="panel-form">
-                    <strong class="form-title">Connect a calendar</strong>
+                <details class="panel-form other-calendars" id="other-calendars">
+                    <summary class="form-title">Other calendars (read-only link)</summary>
+                <form id="calendar-form" class="other-calendars-form">
+                    <p class="field-hint">Show another calendar, such as a university timetable or Outlook, from its private iCal link. These can't be edited here.</p>
                     <label class="field">
                         <span>Private calendar link (iCal / .ics)</span>
                         <input type="url" id="cf-url" required placeholder="https://calendar.google.com/calendar/ical/.../basic.ics" autocomplete="off">
@@ -331,8 +332,94 @@
                         <button type="button" class="panel-small-btn" id="cal-folder-clear" hidden>Remove</button>
                     </div>
                 </div>
+                </details>
             </div>
-            <footer class="wp-dialog-footer">Events refresh every 10 minutes. Nothing is sent anywhere except to your calendar's own address.</footer>
+            <footer class="wp-dialog-footer">Events refresh every few minutes. Your calendar data only goes between this app and your calendar provider.</footer>
+        </div>
+    </div>
+
+    <!-- One day's events (click a date on the calendar) -->
+    <div id="day-modal" class="wp-modal" hidden>
+        <div class="wp-dialog panel-dialog day-dialog" role="dialog" aria-modal="true" aria-labelledby="day-title">
+            <header class="wp-dialog-header">
+                <div>
+                    <h3 id="day-title"></h3>
+                    <p class="wp-status" id="day-subtitle"></p>
+                </div>
+                <div class="wp-header-actions">
+                    <button type="button" class="wp-web-btn" id="day-add-btn"><i class="fa-solid fa-plus"></i> Add event</button>
+                    <button type="button" class="wp-close" data-close aria-label="Close">&times;</button>
+                </div>
+            </header>
+            <div class="panel-body">
+                <div id="day-list" class="panel-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / edit an event -->
+    <div id="event-modal" class="wp-modal" hidden>
+        <div class="wp-dialog panel-dialog" role="dialog" aria-modal="true" aria-labelledby="event-title">
+            <header class="wp-dialog-header">
+                <div>
+                    <h3 id="event-title">New event</h3>
+                    <p class="wp-status" id="event-subtitle"></p>
+                </div>
+                <div class="wp-header-actions">
+                    <button type="button" class="wp-close" data-close aria-label="Close">&times;</button>
+                </div>
+            </header>
+            <form class="panel-body" id="event-form">
+                <label class="field">
+                    <span>Title</span>
+                    <input type="text" id="ef-title" maxlength="200" required placeholder="e.g. FYP meeting">
+                </label>
+                <label class="field">
+                    <span>When <small class="field-hint">type it, or use the boxes below</small></span>
+                    <input type="text" id="ef-when" autocomplete="off" placeholder="e.g. tomorrow 3-4pm · fri 10am · 25/12 all day">
+                    <small class="when-preview" id="ef-when-preview" aria-live="polite"></small>
+                </label>
+                <div class="form-row">
+                    <label class="field">
+                        <span>Date</span>
+                        <input type="date" id="ef-date" required>
+                    </label>
+                    <label class="field ef-time">
+                        <span>Starts</span>
+                        <input type="time" id="ef-start">
+                    </label>
+                    <label class="field ef-time">
+                        <span>Ends</span>
+                        <input type="time" id="ef-end">
+                    </label>
+                    <label class="check-field">
+                        <input type="checkbox" id="ef-allday">
+                        <span>All day</span>
+                    </label>
+                </div>
+                <div class="form-row">
+                    <label class="field field-grow">
+                        <span>Location</span>
+                        <input type="text" id="ef-location" maxlength="500" placeholder="Optional">
+                    </label>
+                    <label class="field">
+                        <span>Calendar</span>
+                        <select id="ef-calendar"></select>
+                    </label>
+                </div>
+                <label class="field">
+                    <span>Notes</span>
+                    <textarea id="ef-notes" rows="3" maxlength="5000" placeholder="Optional"></textarea>
+                </label>
+                <p class="field-hint" id="ef-recurring-note" hidden>This is one occurrence of a repeating event. Changes here apply to this occurrence only.</p>
+                <p class="form-error" id="ef-error" role="alert"></p>
+                <div class="form-actions">
+                    <button type="button" class="panel-small-btn danger-text" id="ef-delete" hidden><i class="fa-solid fa-trash-can"></i> Delete</button>
+                    <span class="spacer"></span>
+                    <button type="button" class="panel-small-btn" data-close>Cancel</button>
+                    <button type="submit" class="panel-primary-btn" id="ef-save">Save</button>
+                </div>
+            </form>
         </div>
     </div>
 

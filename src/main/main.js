@@ -11,6 +11,8 @@ const config = require('./config');
 const desktopHost = require('./desktop-host');
 const alarms = require('./alarms');
 const calendars = require('./calendars');
+const google = require('./google');
+const when = require('./when');
 
 const APP_URL = 'app://dashboard/index.html';
 const ICON = path.join(__dirname, '..', '..', 'build', 'icon.png');
@@ -55,11 +57,15 @@ function targetDisplay() {
     return screen.getPrimaryDisplay();
 }
 
-/** Where the dashboard's widgets may go: the display minus the taskbar, as insets in CSS pixels. */
+/**
+ * Where the dashboard's widgets may go, as insets in CSS pixels. The wallpaper covers the whole
+ * screen, so it keeps widgets out from under the taskbar; the editor window already stops at the
+ * taskbar (so the taskbar stays usable), so it needs none. Either way widgets land in the same place.
+ */
 function layoutQuery(mode) {
     const d = targetDisplay();
     const b = d.bounds, w = d.workArea;
-    const insets = {
+    const insets = mode === 'editor' ? { t: 0, l: 0, r: 0, b: 0 } : {
         t: w.y - b.y, l: w.x - b.x,
         r: (b.x + b.width) - (w.x + w.width), b: (b.y + b.height) - (w.y + w.height),
     };
@@ -147,12 +153,14 @@ function openEditor() {
         editorWin.focus();
         return;
     }
-    const d = targetDisplay();
+    // The editor fills the screen above the taskbar, so the taskbar stays usable
+    const area = targetDisplay().workArea;
     editorWin = new BrowserWindow({
-        ...d.bounds,
+        ...area,
         frame: false,
         thickFrame: false,
         resizable: false,
+        minimizable: true,
         skipTaskbar: false,
         title: 'Customize wallpaper',
         icon: ICON,
@@ -162,8 +170,7 @@ function openEditor() {
     });
     editorWin.loadURL(layoutQuery('editor'));
     editorWin.once('ready-to-show', () => {
-        // Windows shrinks new windows to fit above the taskbar; the editor must match the wallpaper exactly
-        editorWin.setBounds(d.bounds);
+        editorWin.setBounds(area);
         editorWin.show();
     });
     editorWin.on('closed', () => {
@@ -391,6 +398,48 @@ ipcMain.on('alarm:action', (event, { id, action }) => {
     updateTrayTooltip();
 });
 
+ipcMain.on('editor:minimize', () => editorWin?.minimize());
+ipcMain.handle('when:parse', (_e, { text, mode }) => when.parse(text, { mode }));
+
+// Google Calendar
+ipcMain.handle('google:status', () => ({ configured: google.isConfigured(), account: google.account() }));
+ipcMain.handle('google:sign-in', async () => {
+    try {
+        const account = await google.signIn();
+        editorWin?.show();
+        editorWin?.focus();
+        broadcast('calendars:changed');
+        return { account };
+    } catch (e) {
+        editorWin?.focus();
+        return { error: e.message };
+    }
+});
+ipcMain.handle('google:cancel-sign-in', () => google.cancelSignIn());
+ipcMain.handle('google:sign-out', async () => {
+    await google.signOut();
+    broadcast('calendars:changed');
+});
+ipcMain.handle('google:calendars', async () => {
+    try {
+        return { calendars: await google.calendars() };
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+async function eventChange(fn) {
+    try {
+        const result = await fn();
+        broadcast('calendars:changed');
+        return { event: result || null };
+    } catch (e) {
+        return { error: e.message };
+    }
+}
+ipcMain.handle('events:create', (_e, { calendarId, event }) => eventChange(() => google.createEvent(calendarId, event)));
+ipcMain.handle('events:update', (_e, { calendarId, eventId, event }) => eventChange(() => google.updateEvent(calendarId, eventId, event)));
+ipcMain.handle('events:delete', (_e, { calendarId, eventId }) => eventChange(() => google.deleteEvent(calendarId, eventId)));
+
 ipcMain.handle('calendars:get', () => ({
     feeds: calendars.feeds().map(({ id, name, color, url }) => ({ id, name, color, host: new URL(url).host })),
     folder: config.get('calendarDir') || '',
@@ -427,6 +476,7 @@ ipcMain.handle('calendars:clear-folder', () => {
 app.whenReady().then(() => {
     if (!isPrimary) return;
     app.setAppUserModelId('com.rabiyatahir.livewallpaperdashboard');
+    when.useWindowsDateOrder();
     api.registerHandler();
     createTray();
 
@@ -454,7 +504,7 @@ app.on('window-all-closed', () => {});
 if (process.env.LWD_TEST_PROFILE) {
     global.lwdTest = {
         setWallpaperFromUrl, openWebSearch, openEditor, openEditorPanel, ring, fetchImage: api.fetchImage,
-        alarms, calendars, ringing, config,
+        alarms, calendars, ringing, config, google, when,
         windows: () => ({ wallpaperWin, editorWin, webWin, webView }),
     };
 }

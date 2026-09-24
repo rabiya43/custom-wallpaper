@@ -1,7 +1,7 @@
 // Alarm scheduling. Alarms live in the settings file and are checked here in the main
 // process, so they ring whenever the app is running, whether or not the editor is open.
 //
-// Alarm: { id, time: 'HH:MM', label, days: [0-6] (0 = Sunday; empty = ring once),
+// Alarm: { id, time: 'HH:MM', label, days: [0-6] (0 = Sunday; empty = ring once, on `date` 'YYYY-MM-DD'),
 //          enabled, sound: 'chime' | 'beep' | 'digital' | 'gentle' | 'file:<name>', soundName }
 const fs = require('fs');
 const path = require('path');
@@ -38,14 +38,33 @@ function sanitize(a) {
         time,
         label: String(a.label || '').slice(0, 60),
         days,
+        date: !days.length && /^\d{4}-\d{2}-\d{2}$/.test(a.date || '') ? a.date : '',
         enabled: a.enabled !== false,
         sound,
         soundName: isFile ? String(a.soundName || 'Custom sound').slice(0, 80) : '',
     };
 }
 
+/**
+ * The day a one-time alarm will ring: its own date, or today/tomorrow if it has none or that
+ * moment has passed. The current minute still counts as "not passed" so a save made just
+ * before the scheduler checks doesn't push the alarm to the next day.
+ */
+function onceDate(a, now = new Date()) {
+    const [h, m] = a.time.split(':').map(Number);
+    const notPassed = at => at.getTime() > now.getTime() - 60000;
+    if (a.date) {
+        const [y, mo, d] = a.date.split('-').map(Number);
+        if (notPassed(new Date(y, mo - 1, d, h, m))) return a.date;
+    }
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+    return dayKey(notPassed(today) ? today : new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+}
+
 function save(alarms) {
     const clean = (Array.isArray(alarms) ? alarms : []).slice(0, 30).map(sanitize);
+    // One-time alarms always carry the day they will ring on
+    for (const a of clean) if (!a.days.length && a.enabled) a.date = onceDate(a);
     config.set('alarms', clean);
     // Drop snoozes of alarms that were deleted (a one-time alarm is disabled after ringing but can still be snoozed)
     for (let i = snoozed.length - 1; i >= 0; i--) {
@@ -95,6 +114,12 @@ function next(now = new Date()) {
     for (const a of list()) {
         if (!a.enabled) continue;
         const [h, m] = a.time.split(':').map(Number);
+        if (!a.days.length && a.date) {
+            const [y, mo, d] = a.date.split('-').map(Number);
+            const at = new Date(y, mo - 1, d, h, m);
+            if (at > now && (!best || at < best.at)) best = { at, alarm: a };
+            continue;
+        }
         for (let offset = 0; offset < 8; offset++) {
             const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset, h, m);
             if (d <= now) continue;
@@ -118,6 +143,7 @@ function tick() {
     for (const a of alarms) {
         if (!a.enabled || a.time !== hhmm(now)) continue;
         if (a.days.length && !a.days.includes(now.getDay())) continue;
+        if (!a.days.length && a.date && a.date !== dayKey(now)) continue;  // one-time alarm on another day
         const key = `${a.id}|${slot}`;
         if (fired.has(key)) continue;
         fired.add(key);
