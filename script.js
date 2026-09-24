@@ -1,3 +1,6 @@
+// Optional local Python server (calendar events + reminder mirroring)
+const SYNC_SERVER = 'http://localhost:5000';
+
 // --- Draggable, Resizable, & Edit Mode ---
 document.addEventListener('dblclick', (e) => {
     const widget = e.target.closest('.drag-widget');
@@ -36,14 +39,6 @@ function makeDraggable(elmnt) {
         document.onmouseup = closeDragElement;
         document.onmousemove = elementDrag;
     };
-
-    function dragMouseDown(e) {
-        e.preventDefault();
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
-    }
 
     function elementDrag(e) {
         e.preventDefault();
@@ -87,6 +82,67 @@ function makeDraggable(elmnt) {
 }
 
 document.querySelectorAll('.drag-widget').forEach(makeDraggable);
+
+// --- Layout persistence (position, size, hidden widgets) ---
+const LAYOUT_KEY = 'dashboard-layout';
+let layoutState = {};
+try { layoutState = JSON.parse(localStorage.getItem(LAYOUT_KEY)) || {}; } catch (e) { layoutState = {}; }
+
+function saveWidget(widget, hidden = false) {
+    const id = widget.dataset.id;
+    if (!id) return;
+    const s = widget.style;
+    layoutState[id] = { top: s.top, left: s.left, right: s.right, bottom: s.bottom, width: s.width, height: s.height, hidden };
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(layoutState));
+}
+
+function restoreLayout() {
+    document.querySelectorAll('.drag-widget[data-id]').forEach(widget => {
+        const saved = layoutState[widget.dataset.id];
+        if (!saved) return;
+        if (saved.hidden) { widget.style.display = 'none'; return; }
+        ['top', 'left', 'right', 'bottom', 'width', 'height'].forEach(prop => {
+            if (saved[prop]) widget.style[prop] = saved[prop];
+        });
+        // Keep widgets reachable if the window is smaller than when the layout was saved
+        const rect = widget.getBoundingClientRect();
+        if (rect.right > window.innerWidth) widget.style.left = Math.max(0, window.innerWidth - rect.width - 20) + 'px';
+        if (rect.bottom > window.innerHeight) widget.style.top = Math.max(0, window.innerHeight - rect.height - 20) + 'px';
+    });
+}
+restoreLayout();
+
+// Save after a drag or resize finishes
+// (delayed so the edge-snap animation has settled)
+document.addEventListener('mouseup', () => {
+    setTimeout(() => {
+        document.querySelectorAll('.drag-widget.edit-mode').forEach(w => saveWidget(w));
+    }, 350);
+});
+
+// Close button hides the widget (and remembers it)
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.close-btn');
+    if (!btn) return;
+    const widget = btn.closest('.drag-widget');
+    if (widget) {
+        widget.style.display = 'none';
+        widget.classList.remove('edit-mode');
+        saveWidget(widget, true);
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') document.querySelectorAll('.drag-widget').forEach(w => w.classList.remove('edit-mode'));
+});
+
+const resetLayoutBtn = document.getElementById('reset-layout-btn');
+if (resetLayoutBtn) {
+    resetLayoutBtn.addEventListener('click', () => {
+        localStorage.removeItem(LAYOUT_KEY);
+        location.reload();
+    });
+}
 
 // --- HIGH-RELIABILITY INDEXEDDB WALLPAPER STORAGE (Supports 4K images & GIFs) ---
 const WallpaperDB = {
@@ -376,14 +432,9 @@ async function initDashboardTheme() {
         applyPalette(CHARACTER_PALETTES['buttercup'], 'buttercup');
     }
 
-    // 3. Restore wallpaper from IndexedDB (or fallback to clean default Buttercup)
+    // 3. Restore the uploaded wallpaper from IndexedDB (no image = plain gradient)
     const savedWp = await WallpaperDB.load();
-    if (savedWp) {
-        setWallpaperDisplay(savedWp);
-    } else {
-        // High-quality transparent character art for initial display
-        setWallpaperDisplay('https://upload.wikimedia.org/wikipedia/en/d/db/Buttercup_%28Powerpuff_Girls%29.png');
-    }
+    if (savedWp) setWallpaperDisplay(savedWp);
 }
 
 initDashboardTheme();
@@ -408,19 +459,68 @@ function updateTimeAndDate() {
 }
 updateTimeAndDate();
 
+// --- Alarm: stored as 24h "HH:MM", rings once when the time is reached ---
 const alarmWidget = document.getElementById('alarm-widget');
 const alarmTimeText = document.getElementById('alarm-time');
-let savedAlarm = localStorage.getItem('buttercup-alarm') || 'Off';
-alarmTimeText.innerText = savedAlarm;
-alarmWidget.addEventListener('click', () => {
-    let newTime = prompt("Set your alarm time (e.g. 07:30 AM), or type 'Off':", savedAlarm);
-    if (newTime !== null) {
-        newTime = newTime.trim() === '' ? 'Off' : newTime;
-        localStorage.setItem('buttercup-alarm', newTime);
-        savedAlarm = newTime;
-        alarmTimeText.innerText = newTime;
+const alarmInput = document.getElementById('alarm-input');
+let savedAlarm = localStorage.getItem('dashboard-alarm') || '';
+let lastRungMinute = '';
+
+function formatAlarm(value) {
+    if (!value) return 'Off';
+    const [h, m] = value.split(':').map(Number);
+    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+
+function setAlarm(value) {
+    savedAlarm = value;
+    if (value) localStorage.setItem('dashboard-alarm', value);
+    else localStorage.removeItem('dashboard-alarm');
+    alarmTimeText.innerText = formatAlarm(value);
+    alarmWidget.classList.toggle('alarm-on', !!value);
+    if (value && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+}
+
+function ringAlarm() {
+    alarmWidget.classList.add('alarm-ringing');
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [0, 0.35, 0.7].forEach(delay => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.2, ctx.currentTime + delay);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + 0.3);
+        });
+    } catch (e) { /* audio blocked until the page gets a click */ }
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Alarm', { body: formatAlarm(savedAlarm) });
     }
+    setTimeout(() => alarmWidget.classList.remove('alarm-ringing'), 15000);
+}
+
+function checkAlarm() {
+    if (!savedAlarm) return;
+    const now = new Date();
+    const current = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    if (current === savedAlarm && lastRungMinute !== current) {
+        lastRungMinute = current;
+        ringAlarm();
+    }
+}
+
+alarmWidget.addEventListener('click', () => {
+    alarmWidget.classList.remove('alarm-ringing');
+    alarmInput.value = savedAlarm || '07:00';
+    if (alarmInput.showPicker) alarmInput.showPicker(); else alarmInput.click();
 });
+alarmWidget.addEventListener('contextmenu', (e) => { e.preventDefault(); setAlarm(''); });
+alarmInput.addEventListener('change', () => setAlarm(alarmInput.value));
+setAlarm(savedAlarm);
+setInterval(checkAlarm, 5000);
 
 function renderCalendar() {
     const now = new Date();
@@ -437,6 +537,28 @@ function renderCalendar() {
     }
 }
 renderCalendar();
+
+// Mark days that have events when the optional Python server is running
+async function markCalendarEvents() {
+    try {
+        const res = await fetch(`${SYNC_SERVER}/api/calendar/events`);
+        const events = await res.json();
+        const now = new Date();
+        const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`;
+        const days = document.querySelectorAll('#calendar-grid span:not(:empty)');
+        events.forEach(ev => {
+            if (!ev.start.startsWith(prefix)) return;
+            const day = parseInt(ev.start.slice(8, 10), 10);
+            const cell = days[day - 1];
+            if (!cell) return;
+            cell.classList.add('has-event');
+            cell.title = cell.title ? `${cell.title}\n${ev.title}` : ev.title;
+        });
+    } catch (e) {
+        // Server not running; the calendar just shows dates
+    }
+}
+markCalendarEvents();
 
 async function updateBattery() {
     if ('getBattery' in navigator) {
@@ -455,110 +577,131 @@ updateBattery();
 // --- Todo List Logic & Python Backend Sync ---
 const todoInput = document.getElementById('todo-input');
 const todoListContainer = document.getElementById('todo-list-container');
-const addTodoBtn = document.getElementById('add-todo-btn');
-let reminders = JSON.parse(localStorage.getItem('buttercup-reminders')) || [];
+let reminders = [];
+try { reminders = JSON.parse(localStorage.getItem('dashboard-reminders')) || []; } catch (e) { reminders = []; }
 
-function saveAndRenderReminders() {
-    localStorage.setItem('buttercup-reminders', JSON.stringify(reminders));
-    
-    // Sync to python backend in background if running
-    fetch('http://localhost:5000/api/reminders/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reminders)
-    }).catch(e => {});
-
+function renderReminders() {
     todoListContainer.innerHTML = '';
     reminders.forEach((r, i) => {
         const div = document.createElement('div'); div.className = 'todo-item' + (r.checked ? ' checked' : '');
         const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = r.checked;
-        cb.onchange = () => { r.checked = !r.checked; saveAndRenderReminders(); };
+        cb.onchange = () => { r.checked = !r.checked; saveReminders(); };
         const txt = document.createElement('span'); txt.className = 'task-text'; txt.innerText = r.text;
-        const del = document.createElement('button'); del.className = 'delete-btn'; del.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-        del.onclick = () => { reminders.splice(i, 1); saveAndRenderReminders(); };
+        const del = document.createElement('button'); del.className = 'delete-btn'; del.setAttribute('aria-label', 'Delete reminder'); del.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        del.onclick = () => { reminders.splice(i, 1); saveReminders(); };
         div.append(cb, txt, del); todoListContainer.appendChild(div);
     });
 }
+
+// Local storage is the source of truth; the optional Python server just mirrors it
+function saveReminders() {
+    localStorage.setItem('dashboard-reminders', JSON.stringify(reminders));
+    fetch(`${SYNC_SERVER}/api/reminders/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reminders)
+    }).catch(() => {});
+    renderReminders();
+}
+
 function addTodo() {
     const val = todoInput.value.trim();
     if (val) {
         reminders.push({text: val, checked: false});
         todoInput.value = '';
-        saveAndRenderReminders();
+        saveReminders();
     }
 }
-todoInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTodo(); });
-addTodoBtn.addEventListener('click', addTodo);
-saveAndRenderReminders();
+todoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
+renderReminders();
 
-// Python Calendar Integration
-async function syncCalendarAndReminders() {
+// Optional Python server: only used to restore reminders when this browser has none
+async function pullRemindersIfEmpty() {
+    if (reminders.length > 0) return;
     try {
-        // Fetch calendar events
-        const eventsResponse = await fetch('http://localhost:5000/api/calendar/events');
-        const events = await eventsResponse.json();
-        
-        // Example: update calendar widget with events (basic alert dot logic could go here)
-        // console.log("Calendar events:", events);
-
-        // Fetch reminders
-        const remindersResponse = await fetch('http://localhost:5000/api/reminders');
-        const remoteReminders = await remindersResponse.json();
-        if (remoteReminders && remoteReminders.length > 0 && JSON.stringify(reminders) !== JSON.stringify(remoteReminders)) {
-            reminders = remoteReminders;
-            localStorage.setItem('buttercup-reminders', JSON.stringify(reminders));
-            saveAndRenderReminders();
+        const res = await fetch(`${SYNC_SERVER}/api/reminders`);
+        const remote = await res.json();
+        if (Array.isArray(remote) && remote.length > 0) {
+            reminders = remote;
+            saveReminders();
         }
-    } catch (error) {
-        console.log('Python local sync server not detected. Running offline.');
+    } catch (e) {
+        // Server not running; the dashboard works fine without it
     }
-    // Sync every 5 minutes
-    setTimeout(syncCalendarAndReminders, 300000);
 }
-syncCalendarAndReminders();
+pullRemindersIfEmpty();
 
-// --- Integrated Weather Logic with Condition Mapping ---
-const weatherCodeMap = {
-    0: { desc: 'Clear sky', emoji: '☀️', bg: 'linear-gradient(135deg, rgba(255,215,0,0.2), transparent)' },
-    1: { desc: 'Mainly clear', emoji: '🌤️', bg: 'linear-gradient(135deg, rgba(255,215,0,0.1), transparent)' },
-    2: { desc: 'Partly cloudy', emoji: '⛅', bg: 'linear-gradient(135deg, rgba(200,200,200,0.2), transparent)' },
-    3: { desc: 'Overcast', emoji: '☁️', bg: 'linear-gradient(135deg, rgba(150,150,150,0.3), transparent)' },
-    45: { desc: 'Foggy', emoji: '🌫️', bg: 'linear-gradient(135deg, rgba(200,200,200,0.4), transparent)' },
-    48: { desc: 'Depositing rime fog', emoji: '🌫️', bg: 'linear-gradient(135deg, rgba(200,200,200,0.4), transparent)' },
-    51: { desc: 'Light drizzle', emoji: '🌦️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.2), transparent)' },
-    53: { desc: 'Moderate drizzle', emoji: '🌧️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.3), transparent)' },
-    55: { desc: 'Dense drizzle', emoji: '🌧️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.4), transparent)' },
-    61: { desc: 'Slight rain', emoji: '🌦️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.2), transparent)' },
-    63: { desc: 'Moderate rain', emoji: '🌧️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.3), transparent)' },
-    65: { desc: 'Heavy rain', emoji: '🌧️', bg: 'linear-gradient(135deg, rgba(100,150,255,0.5), transparent)' },
-    71: { desc: 'Slight snow', emoji: '🌨️', bg: 'linear-gradient(135deg, rgba(255,255,255,0.3), transparent)' },
-    73: { desc: 'Moderate snow', emoji: '❄️', bg: 'linear-gradient(135deg, rgba(255,255,255,0.4), transparent)' },
-    75: { desc: 'Heavy snow', emoji: '❄️', bg: 'linear-gradient(135deg, rgba(255,255,255,0.5), transparent)' },
-    95: { desc: 'Thunderstorm', emoji: '⛈️', bg: 'linear-gradient(135deg, rgba(100,50,150,0.4), transparent)' },
+
+// --- Weather (Open-Meteo, no API key) ---
+const WEATHER_CODES = {
+    0: ['Clear sky', '☀️', 'rgba(255,215,0,0.2)'],
+    1: ['Mainly clear', '🌤️', 'rgba(255,215,0,0.1)'],
+    2: ['Partly cloudy', '⛅', 'rgba(200,200,200,0.2)'],
+    3: ['Overcast', '☁️', 'rgba(150,150,150,0.3)'],
+    45: ['Foggy', '🌫️', 'rgba(200,200,200,0.4)'],
+    48: ['Rime fog', '🌫️', 'rgba(200,200,200,0.4)'],
+    51: ['Light drizzle', '🌦️', 'rgba(100,150,255,0.2)'],
+    53: ['Drizzle', '🌧️', 'rgba(100,150,255,0.3)'],
+    55: ['Dense drizzle', '🌧️', 'rgba(100,150,255,0.4)'],
+    56: ['Freezing drizzle', '🌧️', 'rgba(150,200,255,0.3)'],
+    57: ['Freezing drizzle', '🌧️', 'rgba(150,200,255,0.4)'],
+    61: ['Light rain', '🌦️', 'rgba(100,150,255,0.2)'],
+    63: ['Rain', '🌧️', 'rgba(100,150,255,0.3)'],
+    65: ['Heavy rain', '🌧️', 'rgba(100,150,255,0.5)'],
+    66: ['Freezing rain', '🌧️', 'rgba(150,200,255,0.3)'],
+    67: ['Freezing rain', '🌧️', 'rgba(150,200,255,0.5)'],
+    71: ['Light snow', '🌨️', 'rgba(255,255,255,0.3)'],
+    73: ['Snow', '❄️', 'rgba(255,255,255,0.4)'],
+    75: ['Heavy snow', '❄️', 'rgba(255,255,255,0.5)'],
+    77: ['Snow grains', '❄️', 'rgba(255,255,255,0.3)'],
+    80: ['Light showers', '🌦️', 'rgba(100,150,255,0.2)'],
+    81: ['Showers', '🌧️', 'rgba(100,150,255,0.35)'],
+    82: ['Violent showers', '🌧️', 'rgba(100,150,255,0.5)'],
+    85: ['Snow showers', '🌨️', 'rgba(255,255,255,0.3)'],
+    86: ['Heavy snow showers', '❄️', 'rgba(255,255,255,0.5)'],
+    95: ['Thunderstorm', '⛈️', 'rgba(100,50,150,0.4)'],
+    96: ['Thunderstorm, hail', '⛈️', 'rgba(100,50,150,0.5)'],
+    99: ['Severe thunderstorm', '⛈️', 'rgba(100,50,150,0.6)'],
 };
 
-async function fetchWeather(lat, lon) {
+const DEFAULT_LOCATION = { lat: 31.5204, lon: 74.3587, name: 'Lahore' };
+
+async function fetchWeather(lat, lon, fallbackName) {
     try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto`);
         const data = await res.json();
-        
-        document.getElementById('weather-temp').innerHTML = `${Math.round(data.current_weather.temperature)}&deg;`;
-        document.getElementById('humidity-level').innerText = `${data.hourly.relativehumidity_2m[0]}%`;
-        
-        // Map Condition
-        const code = data.current_weather.weathercode;
-        const condition = weatherCodeMap[code] || { desc: 'Unknown', emoji: '🌡️', bg: 'transparent' };
-        document.getElementById('weather-desc').innerText = condition.desc;
-        document.getElementById('weather-emoji').innerText = condition.emoji;
-        
-        // Apply subtle weather gradient to widget
-        document.getElementById('weather-container').style.background = `var(--widget-bg), ${condition.bg}`;
-        
-        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-        const geoData = await geoRes.json();
-        document.getElementById('weather-loc').innerText = geoData.address.city || geoData.address.town || 'Your Location';
-    } catch(e) {
-        document.getElementById('weather-desc').innerText = "Unavailable";
+        const current = data.current;
+
+        document.getElementById('weather-temp').innerHTML = `${Math.round(current.temperature_2m)}&deg;`;
+        document.getElementById('humidity-level').innerText = `${current.relative_humidity_2m}%`;
+
+        const [desc, emoji, tint] = WEATHER_CODES[current.weather_code] || ['Unknown', '🌡️', 'transparent'];
+        document.getElementById('weather-desc').innerText = desc;
+        document.getElementById('weather-emoji').innerText = emoji;
+        document.getElementById('weather-container').style.backgroundImage = `linear-gradient(135deg, ${tint}, transparent)`;
+
+        document.getElementById('weather-loc').innerText = fallbackName || 'Your location';
+        if (!fallbackName) {
+            try {
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+                const geoData = await geoRes.json();
+                const a = geoData.address || {};
+                document.getElementById('weather-loc').innerText = a.city || a.town || a.village || 'Your location';
+            } catch (e) { /* keep the generic label */ }
+        }
+    } catch (e) {
+        document.getElementById('weather-desc').innerText = 'Unavailable';
     }
 }
-if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p => fetchWeather(p.coords.latitude, p.coords.longitude));
+
+function loadWeather() {
+    const useDefault = () => fetchWeather(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon, DEFAULT_LOCATION.name);
+    if (!navigator.geolocation) return useDefault();
+    navigator.geolocation.getCurrentPosition(
+        p => fetchWeather(p.coords.latitude, p.coords.longitude),
+        useDefault,
+        { timeout: 8000 }
+    );
+}
+loadWeather();
+setInterval(loadWeather, 30 * 60 * 1000);

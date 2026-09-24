@@ -352,7 +352,7 @@ body {
 }
 .calendar-grid .active-day {
     background: var(--primary-text) !important;
-    color: var(--bg-color);
+    color: var(--bg-color-1, #2D5A46);
     font-weight: bold;
 }
 
@@ -689,4 +689,75 @@ body {
     color: rgba(255, 255, 255, 0.5);
     text-align: center;
     margin-top: -2px;
+}
+
+/* Alarm widget states */
+.hidden-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+#alarm-widget.alarm-on i {
+    color: var(--glow-color);
+}
+#alarm-widget.alarm-ringing i {
+    animation: alarm-ring 0.5s ease-in-out infinite;
+}
+@keyframes alarm-ring {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-18deg); }
+    75% { transform: rotate(18deg); }
+}
+
+/* Theme panel footer */
+.panel-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.panel-footer .drop-hint {
+    margin-top: 0;
+    text-align: left;
+    line-height: 1.35;
+}
+.panel-footer .panel-btn {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+}
+
+/* Keyboard focus visibility */
+button:focus-visible,
+.panel-btn:focus-visible,
+.palette-chip:focus-visible,
+input:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+/* Small screens: stack widgets instead of overlapping them */
+@media (max-width: 720px) {
+    body { overflow-y: auto; height: auto; min-height: 100vh; }
+    .dashboard-container { height: auto; min-height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .drag-widget { position: relative !important; top: auto !important; left: auto !important; right: auto !important; bottom: auto !important; width: 100% !important; max-width: 420px; margin: 0 auto; }
+    .todo-widget { min-height: 200px; }
+    .date-container, .time-container { text-align: center !important; }
+}
+/* Calendar days with events (from the optional Python server) */
+.calendar-grid .has-event {
+    position: relative;
+}
+.calendar-grid .has-event::after {
+    content: '';
+    position: absolute;
+    bottom: 1px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: var(--glow-color);
 }
