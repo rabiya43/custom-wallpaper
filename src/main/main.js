@@ -117,11 +117,15 @@ function destroyWallpaper() {
     desktopHost.restoreSystemWallpaper();
 }
 
+let repositionTimer = null;
 function repositionWallpaper() {
-    if (!wallpaperWin) return;
-    // Simplest reliable way to pick up new sizes and taskbar insets
-    destroyWallpaper();
-    createWallpaper();
+    // Display events come in bursts (resolution, scaling, taskbar); rebuild once they settle
+    clearTimeout(repositionTimer);
+    repositionTimer = setTimeout(() => {
+        if (!wallpaperWin || quitting) return;
+        destroyWallpaper();
+        createWallpaper();
+    }, 1000);
 }
 
 function startWatchdog() {
