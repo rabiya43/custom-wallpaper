@@ -27,8 +27,16 @@
         </div>
     </div>
 
+    <!-- Desktop app: shown while customizing -->
+    <div class="editor-bar" role="toolbar" aria-label="Customize wallpaper">
+        <span class="editor-bar-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Customize your wallpaper</span>
+        <span class="editor-bar-hint">Double-click a widget to move or resize it</span>
+        <button type="button" id="editor-web-btn" class="editor-btn"><i class="fa-solid fa-globe"></i> Search the web</button>
+        <button type="button" id="editor-done-btn" class="editor-btn editor-btn-primary">Done</button>
+    </div>
+
     <div class="dashboard-container">
-        
+
         <!-- System Widget (Alarm & Battery) -->
         <div class="widget drag-widget" data-id="system" style="top: 50px; left: 50px; width: 150px; height: 90px; border-radius: 18px;">
             <span class="close-btn">&times;</span>
@@ -190,14 +198,20 @@
                     <h3 id="wp-modal-title">Wallpapers for &ldquo;<span id="wp-query"></span>&rdquo;</h3>
                     <p id="wp-status" class="wp-status" aria-live="polite"></p>
                 </div>
-                <button type="button" id="wp-close" class="wp-close" aria-label="Close">&times;</button>
+                <div class="wp-header-actions">
+                    <button type="button" id="wp-web" class="wp-web-btn" title="Browse Google Images and right-click any picture to use it"><i class="fa-solid fa-globe"></i> Search the whole web</button>
+                    <button type="button" id="wp-close" class="wp-close" aria-label="Close">&times;</button>
+                </div>
             </header>
             <div class="wp-filters" id="wp-filters" role="group" aria-label="Filter by shape">
                 <button type="button" class="wp-filter active" data-shape="all">All</button>
                 <button type="button" class="wp-filter" data-shape="wide">Wide <small>fills the screen</small></button>
                 <button type="button" class="wp-filter" data-shape="portrait">Portrait <small>centered art</small></button>
             </div>
-            <div id="wp-grid" class="wp-grid"></div>
+            <div class="wp-scroll">
+                <div id="wp-grid" class="wp-grid"></div>
+                <button type="button" id="wp-more" class="wp-more" hidden>Load more</button>
+            </div>
             <footer class="wp-dialog-footer">Click an image to use it. Images belong to their creators and are for personal use.</footer>
         </div>
     </div>

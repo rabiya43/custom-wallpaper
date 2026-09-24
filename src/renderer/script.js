@@ -1,9 +1,23 @@
-// Local Python server (wallpaper search, calendar events, reminder mirroring).
-// When the dashboard is served by it, use same-origin requests; otherwise (file:// or another dev server) call it directly.
-const SYNC_SERVER = location.protocol.startsWith('http') && location.port === '5000' ? '' : 'http://localhost:5000';
+// The desktop app serves this page over app:// and opens it in one of two modes:
+//   wallpaper  behind the desktop icons, display only
+//   editor     on top of everything, for customizing
+// Opened directly in a browser the page is fully interactive, but search needs the app.
+const pageParams = new URLSearchParams(location.search);
+const IS_APP = location.protocol === 'app:';
+const MODE = IS_APP ? (pageParams.get('mode') || 'editor') : 'browser';
+document.body.classList.add(`mode-${MODE}`);
+
+const dashboard = document.querySelector('.dashboard-container');
+if (IS_APP) {
+    // Keep widgets out from under the taskbar
+    [['t', 'top'], ['l', 'left'], ['r', 'right'], ['b', 'bottom']].forEach(([key, side]) => {
+        dashboard.style[side] = (Number(pageParams.get(key)) || 0) + 'px';
+    });
+}
 
 // --- Draggable, Resizable, & Edit Mode ---
 document.addEventListener('dblclick', (e) => {
+    if (MODE === 'wallpaper') return;
     const widget = e.target.closest('.drag-widget');
     if (widget) {
         document.querySelectorAll('.drag-widget').forEach(w => w.classList.remove('edit-mode'));
@@ -61,19 +75,22 @@ function makeDraggable(elmnt) {
         const snapDistance = 60; 
         const edgePadding = 40;  
         
-        const rect = elmnt.getBoundingClientRect();
+        // Snap to the dashboard's edges (which exclude the taskbar in the app)
+        const box = dashboard.getBoundingClientRect();
+        const r = elmnt.getBoundingClientRect();
+        const left = r.left - box.left, top = r.top - box.top;
         elmnt.style.transition = 'top 0.3s ease, left 0.3s ease';
 
-        if (rect.left < snapDistance) {
+        if (left < snapDistance) {
             elmnt.style.left = edgePadding + 'px';
-        } else if (window.innerWidth - rect.right < snapDistance) {
-            elmnt.style.left = (window.innerWidth - rect.width - edgePadding) + 'px';
+        } else if (box.width - (left + r.width) < snapDistance) {
+            elmnt.style.left = (box.width - r.width - edgePadding) + 'px';
         }
 
-        if (rect.top < snapDistance) {
+        if (top < snapDistance) {
             elmnt.style.top = edgePadding + 'px';
-        } else if (window.innerHeight - rect.bottom < snapDistance) {
-            elmnt.style.top = (window.innerHeight - rect.height - edgePadding) + 'px';
+        } else if (box.height - (top + r.height) < snapDistance) {
+            elmnt.style.top = (box.height - r.height - edgePadding) + 'px';
         }
         
         setTimeout(() => {
@@ -105,10 +122,11 @@ function restoreLayout() {
         ['top', 'left', 'right', 'bottom', 'width', 'height'].forEach(prop => {
             if (saved[prop]) widget.style[prop] = saved[prop];
         });
-        // Keep widgets reachable if the window is smaller than when the layout was saved
+        // Keep widgets reachable if the screen is smaller than when the layout was saved
+        const box = dashboard.getBoundingClientRect();
         const rect = widget.getBoundingClientRect();
-        if (rect.right > window.innerWidth) widget.style.left = Math.max(0, window.innerWidth - rect.width - 20) + 'px';
-        if (rect.bottom > window.innerHeight) widget.style.top = Math.max(0, window.innerHeight - rect.height - 20) + 'px';
+        if (rect.right > box.right) widget.style.left = Math.max(0, box.width - rect.width - 20) + 'px';
+        if (rect.bottom > box.bottom) widget.style.top = Math.max(0, box.height - rect.height - 20) + 'px';
     });
 }
 restoreLayout();
@@ -257,16 +275,14 @@ function setWallpaperDisplay(dataUrl) {
 
 async function handleNewWallpaperFile(file) {
     if (!file || !file.type.startsWith('image/')) {
-        alert('Please select an image file (PNG, JPG, WebP, GIF).');
+        showToast('Please choose an image file (PNG, JPG, WebP, GIF).');
         return;
     }
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        const dataUrl = e.target.result;
-        setWallpaperDisplay(dataUrl);
-        await WallpaperDB.save(dataUrl);
-    };
-    reader.readAsDataURL(file);
+    try {
+        await applyWallpaperBlob(file);
+    } catch (e) {
+        showToast("Couldn't read that image");
+    }
 }
 
 // 1. File Input Upload Listener
@@ -376,7 +392,7 @@ function updateCustomColors() {
 if (color1Picker) color1Picker.addEventListener('input', updateCustomColors);
 if (color2Picker) color2Picker.addEventListener('input', updateCustomColors);
 
-// 7. Wallpaper search (needs the local server: python server.py)
+// 7. Wallpaper search (runs in the desktop app)
 const wpForm = document.getElementById('wp-search-form');
 const wpInput = document.getElementById('wp-search-input');
 const wpModal = document.getElementById('wp-modal');
@@ -384,11 +400,15 @@ const wpGrid = document.getElementById('wp-grid');
 const wpStatus = document.getElementById('wp-status');
 const wpQuery = document.getElementById('wp-query');
 const wpFilters = document.querySelectorAll('.wp-filter');
+const wpMore = document.getElementById('wp-more');
+const wpWeb = document.getElementById('wp-web');
 const toastEl = document.getElementById('toast');
 
 let wpResults = [];
 let wpShape = 'all';
 let wpAbort = null;
+let wpCurrentQuery = '';
+let wpPage = 1;
 let toastTimer = null;
 
 function showToast(message) {
@@ -454,7 +474,8 @@ function renderResults() {
 
         const meta = document.createElement('span');
         meta.className = 'wp-meta';
-        meta.textContent = `${item.width}×${item.height} · ${item.source}`;
+        const who = item.tags && item.tags.length ? item.tags.slice(0, 3).join(', ') : '';
+        meta.textContent = who ? `${who} · ${item.width}×${item.height}` : `${item.width}×${item.height} · ${item.source}`;
 
         card.append(img, meta);
         card.addEventListener('click', () => applyRemoteWallpaper(item, card));
@@ -462,27 +483,40 @@ function renderResults() {
     });
 }
 
-async function runWallpaperSearch(query) {
+async function runWallpaperSearch(query, page = 1) {
     if (wpAbort) wpAbort.abort();
     wpAbort = new AbortController();
     const signal = wpAbort.signal;
-    const timeout = setTimeout(() => wpAbort.abort(), 25000);
+    const timeout = setTimeout(() => wpAbort.abort(), 30000);
 
-    wpShape = 'all';
-    openWpModal(query);
-    renderSkeletons();
-    wpStatus.textContent = 'Searching...';
+    if (page === 1) {
+        wpShape = 'all';
+        wpResults = [];
+        wpCurrentQuery = query;
+        openWpModal(query);
+        renderSkeletons();
+        wpStatus.textContent = 'Searching...';
+    } else {
+        wpMore.disabled = true;
+        wpMore.textContent = 'Loading...';
+    }
+    wpMore.hidden = true;
 
     try {
-        const res = await fetch(`${SYNC_SERVER}/api/search?q=${encodeURIComponent(query)}`, { signal });
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=${page}`, { signal });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Search failed');
 
-        wpResults = data.results;
+        // Page 2+ may repeat images from earlier pages
+        const seen = new Set(wpResults.map(r => r.full));
+        wpResults = wpResults.concat(data.results.filter(r => !seen.has(r.full)));
+        wpPage = page;
+        wpMore.hidden = !data.has_more;
+
         if (wpResults.length === 0) {
             wpStatus.textContent = 'No matches';
             renderMessage('No wallpapers found',
-                'Check the spelling, or try just the character or the movie name (for example "Elsa" or "Frozen").');
+                'Try just the character or the movie name, or use "Search the whole web" above.');
             return;
         }
         const note = data.failed_sources.length ? ` (${data.failed_sources.join(', ')} unavailable)` : '';
@@ -490,17 +524,24 @@ async function runWallpaperSearch(query) {
         renderResults();
     } catch (e) {
         if (wpAbort.signal !== signal || wpModal.hidden) return;  // superseded by a newer search, or closed
+        if (page > 1) {
+            showToast("Couldn't load more results");
+            wpMore.hidden = false;
+            return;
+        }
         wpStatus.textContent = 'Search unavailable';
         if (e.name === 'AbortError') {
             renderMessage('The search took too long', 'Check your internet connection and try again.');
-        } else if (e.name === 'TypeError') {
-            renderMessage("Can't reach the dashboard server",
-                'Start it with start-calendar-sync.bat (or "python server.py"), then open http://localhost:5000 and try again.');
+        } else if (!IS_APP) {
+            renderMessage('Search runs in the desktop app',
+                'Install Live Wallpaper Dashboard to search for wallpapers. You can still upload or drag in your own image.');
         } else {
             renderMessage('Something went wrong', e.message);
         }
     } finally {
         clearTimeout(timeout);
+        wpMore.disabled = false;
+        wpMore.textContent = 'Load more';
     }
 }
 
@@ -543,7 +584,8 @@ function extractPalette(bitmap) {
         let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
         h = (h * 60 + 360) % 360;
         const bin = bins[Math.floor(h / 30) % 12];
-        const w = s * (1 - Math.abs(l - 0.5));  // favour vivid, mid-tone pixels
+        // Mostly area (so a big green background beats a small vivid face), nudged toward vivid mid-tones
+        const w = (0.3 + 0.7 * s) * (1 - Math.abs(l - 0.5));
         bin.weight += w; bin.s += s * w; bin.l += l * w; bin.n++;
         bin.hue = (bin.hue || 0) + h * w;
     }
@@ -572,30 +614,37 @@ function extractPalette(bitmap) {
     };
 }
 
+/** Shows an image as the wallpaper, saves it, picks fill mode from its shape and matches colors to it. */
+async function applyWallpaperBlob(sourceBlob) {
+    const { blob, bitmap } = await prepareImage(sourceBlob);
+    const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+
+    setWallpaperDisplay(dataUrl);
+    await WallpaperDB.save(dataUrl);
+    const ratio = bitmap.width / bitmap.height;
+    setFitMode(ratio >= 1.3 ? 'cover' : 'center');
+    applyPalette(extractPalette(bitmap), '');
+    const small = bitmap.width < 1000;
+    bitmap.close?.();
+    showToast(small
+        ? 'Wallpaper applied. It is a small image, so it may look blurry; try opening the full-size version.'
+        : 'Wallpaper applied. Colors were matched to the image.');
+}
+
 async function applyRemoteWallpaper(item, card) {
     if (card.classList.contains('loading')) return;
     card.classList.add('loading');
     wpStatus.textContent = 'Downloading full-size image...';
     try {
-        const res = await fetch(`${SYNC_SERVER}/api/image?url=${encodeURIComponent(item.full)}`);
+        const res = await fetch(`/api/image?url=${encodeURIComponent(item.full)}`);
         if (!res.ok) throw new Error('Could not download that image');
-        const { blob, bitmap } = await prepareImage(await res.blob());
-
-        const dataUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-
-        setWallpaperDisplay(dataUrl);
-        await WallpaperDB.save(dataUrl);
-        setFitMode(item.shape === 'wide' ? 'cover' : 'center');
-        applyPalette(extractPalette(bitmap), '');
-        bitmap.close?.();
-
+        await applyWallpaperBlob(await res.blob());
         wpModal.hidden = true;
-        showToast('Wallpaper applied. Colors were matched to the image.');
     } catch (e) {
         card.classList.remove('loading');
         wpStatus.textContent = 'That one failed. Try another image.';
@@ -611,7 +660,23 @@ if (wpForm) {
         runWallpaperSearch(q);
     });
 }
+wpMore.addEventListener('click', () => runWallpaperSearch(wpCurrentQuery, wpPage + 1));
 wpFilters.forEach(btn => btn.addEventListener('click', () => { wpShape = btn.dataset.shape; renderResults(); }));
+
+// "Search the whole web": a browser window where any image can be right-clicked -> Set as wallpaper
+if (IS_APP && window.desktop) {
+    wpWeb.addEventListener('click', () => window.desktop.openWebSearch(wpCurrentQuery, 'google'));
+    window.desktop.onApplyImage(async ({ bytes, type }) => {
+        try {
+            await applyWallpaperBlob(new Blob([bytes], { type }));
+            wpModal.hidden = true;
+        } catch (e) {
+            showToast("Couldn't use that image");
+        }
+    });
+} else {
+    wpWeb.hidden = true;
+}
 document.getElementById('wp-close').addEventListener('click', closeWpModal);
 wpModal.addEventListener('click', (e) => { if (e.target === wpModal) closeWpModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !wpModal.hidden) closeWpModal(); });
@@ -706,7 +771,8 @@ function ringAlarm() {
 }
 
 function checkAlarm() {
-    if (!savedAlarm) return;
+    // In the app the wallpaper window rings, so the editor stays quiet (no double alarms)
+    if (!savedAlarm || MODE === 'editor') return;
     const now = new Date();
     const current = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     if (current === savedAlarm && lastRungMinute !== current) {
@@ -741,10 +807,11 @@ function renderCalendar() {
 }
 renderCalendar();
 
-// Mark days that have events when the optional Python server is running
+// Mark days that have events (from the .ics folder chosen in the app's tray menu)
 async function markCalendarEvents() {
+    if (!IS_APP) return;
     try {
-        const res = await fetch(`${SYNC_SERVER}/api/calendar/events`);
+        const res = await fetch('/api/calendar/events');
         const events = await res.json();
         const now = new Date();
         const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-`;
@@ -758,7 +825,7 @@ async function markCalendarEvents() {
             cell.title = cell.title ? `${cell.title}\n${ev.title}` : ev.title;
         });
     } catch (e) {
-        // Server not running; the calendar just shows dates
+        // No calendar folder; the calendar just shows dates
     }
 }
 markCalendarEvents();
@@ -777,7 +844,7 @@ async function updateBattery() {
 }
 updateBattery();
 
-// --- Todo List Logic & Python Backend Sync ---
+// --- Reminders ---
 const todoInput = document.getElementById('todo-input');
 const todoListContainer = document.getElementById('todo-list-container');
 let reminders = [];
@@ -796,14 +863,8 @@ function renderReminders() {
     });
 }
 
-// Local storage is the source of truth; the optional Python server just mirrors it
 function saveReminders() {
     localStorage.setItem('dashboard-reminders', JSON.stringify(reminders));
-    fetch(`${SYNC_SERVER}/api/reminders/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reminders)
-    }).catch(() => {});
     renderReminders();
 }
 
@@ -817,22 +878,6 @@ function addTodo() {
 }
 todoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
 renderReminders();
-
-// Optional Python server: only used to restore reminders when this browser has none
-async function pullRemindersIfEmpty() {
-    if (reminders.length > 0) return;
-    try {
-        const res = await fetch(`${SYNC_SERVER}/api/reminders`);
-        const remote = await res.json();
-        if (Array.isArray(remote) && remote.length > 0) {
-            reminders = remote;
-            saveReminders();
-        }
-    } catch (e) {
-        // Server not running; the dashboard works fine without it
-    }
-}
-pullRemindersIfEmpty();
 
 
 // --- Weather (Open-Meteo, no API key) ---
@@ -897,8 +942,19 @@ async function fetchWeather(lat, lon, fallbackName) {
     }
 }
 
-function loadWeather() {
+async function loadWeather() {
     const useDefault = () => fetchWeather(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon, DEFAULT_LOCATION.name);
+    if (IS_APP) {
+        // Desktop apps don't get browser geolocation; use an approximate location from the IP address
+        try {
+            const res = await fetch('/api/location');
+            if (!res.ok) throw new Error();
+            const loc = await res.json();
+            return fetchWeather(loc.lat, loc.lon, loc.name);
+        } catch (e) {
+            return useDefault();
+        }
+    }
     if (!navigator.geolocation) return useDefault();
     navigator.geolocation.getCurrentPosition(
         p => fetchWeather(p.coords.latitude, p.coords.longitude),
@@ -908,3 +964,10 @@ function loadWeather() {
 }
 loadWeather();
 setInterval(loadWeather, 30 * 60 * 1000);
+
+// --- Editor toolbar (desktop app) ---
+if (MODE === 'editor' && window.desktop) {
+    document.getElementById('editor-done-btn').addEventListener('click', () => window.desktop.closeEditor());
+    document.getElementById('editor-web-btn').addEventListener('click', () =>
+        window.desktop.openWebSearch(wpInput.value.trim(), 'google'));
+}

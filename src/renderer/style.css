@@ -718,7 +718,7 @@ input:focus-visible {
     .date-container, .time-container { text-align: center !important; }
     .time-display { justify-content: center !important; }
 }
-/* Calendar days with events (from the optional Python server) */
+/* Calendar days with events (from the .ics folder chosen in the app) */
 .calendar-grid .has-event {
     position: relative;
 }
@@ -873,8 +873,6 @@ input:focus-visible {
     color: #111;
 }
 .wp-grid {
-    flex: 1;
-    overflow-y: auto;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     gap: 12px;
@@ -995,4 +993,126 @@ input:focus-visible {
     .wp-dialog { border-radius: 0; height: 100%; }
     .wp-grid { grid-template-columns: repeat(2, 1fr); padding: 4px 14px 14px; }
     .wp-dialog-header, .wp-filters { padding-left: 14px; padding-right: 14px; }
+}
+/* ============ Desktop app ============ */
+.wp-scroll {
+    flex: 1;
+    overflow-y: auto;
+}
+.wp-more {
+    display: block;
+    margin: 0 auto 18px;
+    padding: 9px 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.wp-more:hover:not(:disabled) { background: rgba(255, 255, 255, 0.16); }
+.wp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.wp-web-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--accent-color);
+    background: transparent;
+    color: var(--accent-color);
+    font-family: var(--base-font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+.wp-web-btn:hover { background: var(--accent-color); color: #111; }
+
+/* Widgets are placed inside the area not covered by the taskbar (insets set by script.js) */
+body.mode-wallpaper .dashboard-container,
+body.mode-editor .dashboard-container {
+    position: absolute;
+    width: auto;
+    height: auto;
+}
+
+/* Wallpaper mode: display only */
+body.mode-wallpaper .theme-panel,
+body.mode-wallpaper .add-todo-container,
+body.mode-wallpaper .close-btn,
+body.mode-wallpaper .todo-item .delete-btn,
+body.mode-wallpaper #drag-drop-overlay,
+body.mode-wallpaper .wp-modal,
+body.mode-wallpaper .toast {
+    display: none !important;
+}
+body.mode-wallpaper .drag-widget { cursor: default; }
+
+/* Editor toolbar */
+.editor-bar { display: none; }
+body.mode-editor .editor-bar {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5000;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 7px 8px 7px 18px;
+    border-radius: 999px;
+    background: rgba(20, 22, 30, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+.editor-bar-title { font-weight: 700; }
+.editor-bar-title i { color: var(--accent-color); margin-right: 4px; }
+.editor-bar-hint { color: rgba(255, 255, 255, 0.55); }
+.editor-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-family: var(--base-font);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, filter 0.2s ease;
+}
+.editor-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.editor-btn-primary {
+    background: var(--accent-color);
+    border-color: transparent;
+    color: #111;
+}
+.editor-btn-primary:hover { background: var(--accent-color); filter: brightness(1.1); }
+/* Wallpaper mode: say something friendly instead of showing an empty reminders box */
+body.mode-wallpaper #todo-list-container:empty::before {
+    content: 'No reminders';
+    font-size: 0.8rem;
+    opacity: 0.55;
+}
+
+/* Alarm time like "10:30 PM" stays on one line */
+#alarm-time {
+    white-space: nowrap;
+    font-size: 0.8rem !important;
 }
