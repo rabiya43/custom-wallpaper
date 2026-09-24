@@ -1581,6 +1581,9 @@ const ef = {
     location: document.getElementById('ef-location'),
     calendar: document.getElementById('ef-calendar'),
     notes: document.getElementById('ef-notes'),
+    reminder: document.getElementById('ef-reminder'),
+    remindEmail: document.getElementById('ef-remind-email'),
+    remindPopup: document.getElementById('ef-remind-popup'),
     error: document.getElementById('ef-error'),
     del: document.getElementById('ef-delete'),
     save: document.getElementById('ef-save'),
@@ -1592,6 +1595,40 @@ const hhmmOf = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
 function syncAllDay() {
     document.querySelectorAll('#event-form .ef-time').forEach(el => { el.hidden = ef.allDay.checked; });
+}
+
+// Reminder: pick a time before the event, then how (email and/or phone notification)
+const DEFAULT_REMINDER = { minutes: 30, email: true, popup: true };
+
+function setReminderFields(r) {
+    const minutes = r ? String(r.minutes) : '';
+    if (minutes && ![...ef.reminder.options].some(o => o.value === minutes)) {
+        // Keep an unusual reminder from Google (e.g. 45 minutes) as its own option
+        const m = Number(minutes);
+        const label = m % 1440 === 0 ? `${m / 1440} days before` : m % 60 === 0 ? `${m / 60} hours before` : `${m} minutes before`;
+        ef.reminder.add(new Option(label, minutes));
+    }
+    ef.reminder.value = minutes;
+    ef.remindEmail.checked = !!(r && r.email);
+    ef.remindPopup.checked = !!(r && r.popup);
+    syncReminder();
+}
+
+function syncReminder() {
+    const off = ef.reminder.value === '';
+    ef.remindEmail.disabled = off;
+    ef.remindPopup.disabled = off;
+    document.querySelector('#event-form .reminder-row').classList.toggle('reminder-off', off);
+    const hint = document.getElementById('ef-reminder-hint');
+    hint.textContent = off ? 'No reminder for this event.'
+        : ef.remindEmail.checked ? `Google emails ${googleState?.email || 'you'} at that time, even if this computer is off.`
+        : ef.remindPopup.checked ? 'Google Calendar notifies you on your phone and in the browser at that time.'
+        : 'Tick "Email me" or "Notify on my phone" to get this reminder.';
+}
+
+function readReminderFields() {
+    if (ef.reminder.value === '' || (!ef.remindEmail.checked && !ef.remindPopup.checked)) return null;
+    return { minutes: Number(ef.reminder.value), email: ef.remindEmail.checked, popup: ef.remindPopup.checked };
 }
 
 async function openEventEditor({ event = null, date = null, returnDay = null } = {}) {
@@ -1625,6 +1662,7 @@ async function openEventEditor({ event = null, date = null, returnDay = null } =
         ef.notes.value = event.description || '';
         ef.calendar.value = event.calendarId;
         ef.calendar.disabled = true;  // moving events between calendars isn't supported here
+        setReminderFields(event.reminder || null);
         document.getElementById('event-title').textContent = 'Edit event';
         document.getElementById('event-subtitle').textContent = event.calendar;
     } else {
@@ -1639,6 +1677,7 @@ async function openEventEditor({ event = null, date = null, returnDay = null } =
         ef.location.value = '';
         ef.notes.value = '';
         ef.calendar.disabled = false;
+        setReminderFields(DEFAULT_REMINDER);
         document.getElementById('event-title').textContent = 'New event';
         document.getElementById('event-subtitle').textContent = googleState.email || 'Google Calendar';
     }
@@ -1707,6 +1746,7 @@ if (IS_APP && window.desktop && MODE === 'editor') {
     document.getElementById('day-add-btn').addEventListener('click', () => openEventEditor({ date: dayViewDate, returnDay: dayViewDate }));
 
     ef.allDay.addEventListener('change', syncAllDay);
+    [ef.reminder, ef.remindEmail, ef.remindPopup].forEach(el => el.addEventListener('change', syncReminder));
     ef.when.addEventListener('input', () => { clearTimeout(efWhenTimer); efWhenTimer = setTimeout(readEventWhen, 150); });
     ef.when.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); clearTimeout(efWhenTimer); readEventWhen(); }
@@ -1732,6 +1772,7 @@ if (IS_APP && window.desktop && MODE === 'editor') {
             location: ef.location.value.trim(),
             description: ef.notes.value.trim(),
             allDay: ef.allDay.checked,
+            reminder: readReminderFields(),
         };
         if (!payload.title) { ef.error.textContent = 'Give the event a title.'; ef.title.focus(); return; }
         if (!ef.date.value) { ef.error.textContent = 'Pick a date.'; return; }
@@ -1758,7 +1799,9 @@ if (IS_APP && window.desktop && MODE === 'editor') {
         ef.save.textContent = 'Save';
         if (result.error) { ef.error.textContent = result.error; return; }
 
-        showToast(editingEvent ? 'Event updated' : `Added "${payload.title}" to Google Calendar`);
+        const r = payload.reminder;
+        const reminderNote = r && r.email ? ` You'll get an email ${r.minutes ? `${ef.reminder.selectedOptions[0].text.toLowerCase()}` : 'when it starts'}.` : '';
+        showToast((editingEvent ? 'Event updated.' : `Added "${payload.title}" to Google Calendar.`) + reminderNote);
         await refreshCalendarEvents(true);
         closePanel(document.getElementById('event-modal'));
     });

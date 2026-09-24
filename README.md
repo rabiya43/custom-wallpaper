@@ -38,6 +38,7 @@ After installing, the dashboard becomes your wallpaper and an icon appears in th
   - **Sign in with Google** to **add, edit and delete** events from the app. Changes appear in Google Calendar on all your devices.
   - Click a **date** on the calendar to see that day and add an event. Click an event in **Upcoming** to edit it.
   - Type when an event happens, like `tomorrow 3-4:30pm`, `fri 10am` or `25/12 all day`.
+  - **Reminders by email:** choose when to be reminded (from the start time up to a week before) and tick **Email me** and/or **Notify on my phone**. Google sends the email to your Gmail at that time, even if your computer is off. New events get a 30-minute email and phone reminder unless you change it.
 - **Pause live wallpaper** brings back your normal Windows wallpaper until you resume.
 - **Start with Windows** launches it automatically when you sign in.
 - **Quit** closes the app and restores your normal wallpaper.

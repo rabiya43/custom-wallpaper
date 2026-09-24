@@ -1597,3 +1597,8 @@ body.mode-editor .calendar-grid span:not(:empty) { cursor: pointer; }
     margin-top: -4px;
 }
 #battery-widget.is-low i, #battery-widget.is-low span { color: #ff8a80; }
+
+/* Event reminder */
+.reminder-row { align-items: flex-end; }
+.reminder-row.reminder-off .check-field { opacity: 0.45; }
+.check-field i { opacity: 0.8; margin-right: 2px; }
