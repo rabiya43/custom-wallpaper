@@ -13,6 +13,9 @@ const alarms = require('./alarms');
 const calendars = require('./calendars');
 const google = require('./google');
 const when = require('./when');
+const updater = require('./updater');
+
+let updatesEnabled = false;
 
 const APP_URL = 'app://dashboard/index.html';
 const ICON = path.join(__dirname, '..', '..', 'build', 'icon.png');
@@ -299,8 +302,25 @@ function buildTrayMenu() {
         { label: 'Alarms...', click: () => openEditorPanel('alarms') },
         { label: 'Calendars...', click: () => openEditorPanel('calendars') },
         { type: 'separator' },
+        ...updateMenuItems(),
         { label: 'Quit', click: () => app.quit() },
     ]);
+}
+
+function updateMenuItems() {
+    if (!updatesEnabled) return [];
+    const u = updater.state();
+    if (u.status === 'ready') {
+        return [{ label: `Restart to update (version ${u.version})`, click: () => updater.restartAndInstall() }, { type: 'separator' }];
+    }
+    const label = u.status === 'checking' ? 'Checking for updates...'
+        : u.status === 'downloading' ? `Downloading update ${u.version || ''}...`
+        : 'Check for updates';
+    return [
+        { label, enabled: u.status !== 'checking' && u.status !== 'downloading', click: () => updater.check(true) },
+        { label: `Version ${app.getVersion()}`, enabled: false },
+        { type: 'separator' },
+    ];
 }
 
 function updateTrayTooltip() {
@@ -488,6 +508,12 @@ app.whenReady().then(() => {
     });
     setInterval(updateTrayTooltip, 60000);
 
+    updatesEnabled = updater.setup({
+        onChange: () => tray?.setContextMenu(buildTrayMenu()),
+        notify,
+        beforeInstall: () => { quitting = true; destroyWallpaper(); },
+    });
+
     if (!config.get('welcomed')) {
         config.set('welcomed', true);
         openEditor();
@@ -504,7 +530,7 @@ app.on('window-all-closed', () => {});
 if (process.env.LWD_TEST_PROFILE) {
     global.lwdTest = {
         setWallpaperFromUrl, openWebSearch, openEditor, openEditorPanel, ring, fetchImage: api.fetchImage,
-        alarms, calendars, ringing, config, google, when,
+        alarms, calendars, ringing, config, google, when, updater, trayMenu: () => buildTrayMenu().items.map(i => i.label),
         windows: () => ({ wallpaperWin, editorWin, webWin, webView }),
     };
 }
@@ -512,5 +538,6 @@ if (process.env.LWD_TEST_PROFILE) {
 app.on('before-quit', () => {
     quitting = true;
     clearInterval(watchdog);
+    updater.stop();
     destroyWallpaper();
 });

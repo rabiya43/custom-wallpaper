@@ -4,7 +4,9 @@ A live desktop wallpaper for Windows. It sits behind your desktop icons and show
 
 ## Install
 
-Download the latest `Live Wallpaper Dashboard Setup.exe` from the [Releases](https://github.com/rabiya43/custom-wallpaper/releases) page and run it.
+Download the latest `Live-Wallpaper-Dashboard-Setup-<version>.exe` from the [Releases](https://github.com/rabiya43/custom-wallpaper/releases) page and run it.
+
+**Updates install themselves** (from version 1.2.0 on). The app checks for a new release shortly after it starts and every few hours, downloads it in the background, and installs it the next time the app restarts. To update right away, use **Restart to update** in the tray menu; **Check for updates** checks now. Your wallpaper, alarms, calendar sign-in and layout are kept.
 
 Windows may show "Windows protected your PC" because the installer isn't code-signed. Click **More info**, then **Run anyway**.
 
@@ -91,6 +93,16 @@ Google needs to know which app is asking for calendar access. This is a one-time
 
 While the app is in "Testing", Google shows a "Google hasn't verified this app" screen during sign-in (click **Continue**), and only the test users you listed can sign in. To let anyone sign in, submit the app for verification under the consent screen settings; Google reviews apps that use calendar scopes, which can take a few weeks.
 
+## Releasing a new version
+
+1. Change `"version"` in `package.json` (for example `1.2.1`) and commit.
+2. Tag and push: `git tag v1.2.1` then `git push origin v1.2.1`.
+3. GitHub Actions (`.github/workflows/release.yml`) builds the installer on Windows and publishes the release. Installed copies pick it up automatically.
+
+For Google sign-in in these builds, add a repository secret named `GOOGLE_OAUTH_JSON` (Settings → Secrets and variables → Actions) containing the whole `google-oauth.json` file.
+
+**Releasing by hand instead:** run `npm run dist`, then attach **all three** files from `dist/` to the GitHub release: `Live-Wallpaper-Dashboard-Setup-<version>.exe`, its `.exe.blockmap`, and `latest.yml`. The updater reads `latest.yml` to find new versions, and the blockmap lets it download only what changed.
+
 ## Develop
 
 Requires [Node.js](https://nodejs.org) 20 or later.
@@ -111,6 +123,7 @@ src/
     calendars.js     calendar links and .ics files, repeating events
     google.js        Google sign-in (PKCE, encrypted token) and Calendar read/write
     when.js          understands typed dates and times ("tomorrow 7am", "every weekday")
+    updater.js       automatic updates from GitHub Releases
     net-safety.js    only public addresses are downloaded
     desktop-host.js  places the wallpaper behind the desktop icons (Win32 via koffi)
     api.js           app:// scheme: serves the dashboard and its /api/* endpoints
