@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 
-const DEFAULTS = { paused: false, calendarDir: '' };
+const DEFAULTS = { paused: false, calendarDir: '', desktopClicks: true };
 let cache = null;
 
 const file = () => path.join(app.getPath('userData'), 'settings.json');
