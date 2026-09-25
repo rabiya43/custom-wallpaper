@@ -916,6 +916,45 @@ function timeParts(d, key) {
     return { text, suffix };
 }
 
+/**
+ * Wide fonts and seconds can make the date or time wider than its widget: shrink the text to fit
+ * (never above the size it was designed at).
+ */
+const CLOCK_TEXT = [
+    { el: () => document.getElementById('date-display'), box: () => document.querySelector('[data-id="date"]'), size: ['date-display'] },
+    { el: () => document.querySelector('.time-display'), box: () => document.querySelector('[data-id="time"]'), size: ['time-display', 'ampm-display'] },
+];
+const clockBaseSizes = {};
+function fitClock() {
+    for (const c of CLOCK_TEXT) {
+        const el = c.el(), box = c.box();
+        if (!el || !box || !box.clientWidth) continue;
+        // Start from the designed sizes (from index.html), then scale down if it doesn't fit
+        c.size.forEach(id => {
+            const t = document.getElementById(id);
+            clockBaseSizes[id] ??= parseFloat(t.style.fontSize) || 3;
+            t.style.fontSize = `${clockBaseSizes[id]}rem`;
+        });
+        const room = box.clientWidth - 8;
+        // Natural width of the text (right-aligned overflow isn't counted in scrollWidth)
+        const prevWidth = el.style.width, prevDisplay = el.style.display;
+        el.style.width = 'max-content';
+        if (getComputedStyle(el).display === 'block') el.style.display = 'inline-block';
+        const needed = el.getBoundingClientRect().width;
+        el.style.width = prevWidth;
+        el.style.display = prevDisplay;
+        if (needed > room) {
+            const ratio = Math.max(0.35, room / needed);
+            c.size.forEach(id => { document.getElementById(id).style.fontSize = `${(clockBaseSizes[id] * ratio).toFixed(3)}rem`; });
+        }
+    }
+}
+if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(() => fitClock());
+    ['date', 'time'].forEach(id => { const w = document.querySelector(`[data-id="${id}"]`); if (w) ro.observe(w); });
+}
+document.fonts?.addEventListener?.('loadingdone', () => fitClock());
+
 let clockTimer = null;
 function updateTimeAndDate() {
     clearTimeout(clockTimer);
@@ -929,6 +968,7 @@ function updateTimeAndDate() {
     document.getElementById('date-display').innerText = DATE_FORMATS[fmt.date](now);
     document.getElementById('date-display').style.fontFamily = CLOCK_FONTS[fmt.dateFont].family;
     document.querySelector('.time-display').style.fontFamily = CLOCK_FONTS[fmt.timeFont].family;
+    fitClock();
     // Next second or next minute, whichever the format needs
     const wait = TIME_FORMATS[fmt.time].seconds ? 1000 - now.getMilliseconds() : (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
     clockTimer = setTimeout(updateTimeAndDate, wait);
