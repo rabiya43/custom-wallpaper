@@ -59,13 +59,19 @@ Run `npm run dist`, then attach **all three** files from `dist/` to a new GitHub
 
 The updater reads `latest.yml` to find new versions, and the blockmap lets it download only what changed. The installer's name has no spaces so it still matches `latest.yml` after uploading (GitHub turns spaces into dots).
 
+## Website
+
+`site/` is the app's website (home page and privacy policy), plain HTML and CSS. It's deployed on Vercel as its own project with **Root Directory** set to `site`, so every push to `main` updates it. The privacy policy page is the one linked from Google's consent screen, so keep it accurate when the app starts using data differently.
+
+To refresh the screenshots in `site/images/`, take them from a throwaway profile with sample data, never from a real calendar.
+
 ## How it works
 
 **Behind the icons.** Explorer draws the desktop icons in a window called `SHELLDLL_DefView`. The app asks Explorer to create a `WorkerW` layer between the icons and the static wallpaper, then places its own window there. On Windows 11 24H2 and later the window goes inside `Progman`, just below the icons. If Explorer restarts, the app re-attaches. On quit it asks Windows to repaint the normal wallpaper. See `src/main/desktop-host.js`.
 
-**Windows.** The same page (`src/renderer/index.html`) runs in two modes: `wallpaper` (behind the icons) and `editor` (on top, above the taskbar). Both are served from a custom `app://` scheme so they share storage. The editor fills the work area and the wallpaper keeps widgets out of the taskbar's area, so positions match exactly.
+**Windows.** The same page (`src/renderer/index.html`) runs in three modes: `wallpaper` (behind the icons), `editor` (on top, above the taskbar) and `popup` (one panel over the desktop). Both are served from a custom `app://` scheme so they share storage. The editor fills the work area and the wallpaper keeps widgets out of the taskbar's area, so positions match exactly.
 
-**Desktop clicks.** The wallpaper window ignores the mouse, so Explorer keeps every click. `desktop-input.js` registers for Raw Input with `RIDEV_INPUTSINK`, which sends the wallpaper window a copy of mouse input in the background (no hook, nothing is blocked). A click is passed to the page only if the window under the cursor is the desktop (`WindowFromPoint`), no icon is hot when the button goes down (`LVM_GETHOTITEM`), the mouse barely moved, and no icon is selected once Explorer has handled it (`LVM_GETSELECTEDCOUNT`). The page finds the widget under the point and acts; anything that needs typing opens the editor at that spot. The tray's **Clickable widgets on the desktop** turns it off.
+**Desktop clicks.** The wallpaper window ignores the mouse, so Explorer keeps every click. `desktop-input.js` registers for Raw Input with `RIDEV_INPUTSINK`, which sends the wallpaper window a copy of mouse input in the background (no hook, nothing is blocked). A click is passed to the page only if the window under the cursor is the desktop (`WindowFromPoint`), no icon is hot when the button goes down (`LVM_GETHOTITEM`), the mouse barely moved, and no icon is selected once Explorer has handled it (`LVM_GETSELECTEDCOUNT`). The page finds the widget under the point and acts. Anything that needs typing opens a `popup` window: a transparent window over the work area that shows only that panel (or the reminders box in its usual place), takes the foreground with `AttachThreadInput`, and hides when the panel closes or it loses focus. It's created on first use and reused. The tray's **Clickable widgets on the desktop** turns it off.
 
 **Wallpaper search** (`src/main/image-search.js`) queries several free sources in parallel with no API keys:
 
@@ -106,6 +112,7 @@ src/
     web.html, web.js                   toolbar of the web search window
     alarm.html, alarm.js, sounds.js    ringing window and alarm tones
 build/icon.png
+site/                    the website: index.html, privacy.html, style.css, images/
 .github/workflows/release.yml
 ```
 

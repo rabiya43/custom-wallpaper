@@ -10,7 +10,10 @@ contextBridge.exposeInMainWorld('desktop', {
     onWebNav: cb => ipcRenderer.on('web:nav', (_e, data) => cb(data)),
     onWebToast: cb => ipcRenderer.on('web:toast', (_e, msg) => cb(msg)),
     onOpenPanel: cb => ipcRenderer.on('editor:panel', (_e, panel) => cb(panel)),
-    openEditorAt: target => ipcRenderer.send('editor:open-at', target),
+    openPopup: target => ipcRenderer.send('popup:open', target),
+    onPopup: cb => ipcRenderer.on('popup:show', (_e, target) => cb(target)),
+    popupReady: () => ipcRenderer.send('popup:ready'),
+    closePopup: () => ipcRenderer.send('popup:close'),
     onDesktopClick: cb => ipcRenderer.on('desktop:click', (_e, pt) => cb(pt)),
     onDesktopHover: cb => ipcRenderer.on('desktop:hover', (_e, pt) => cb(pt)),
 

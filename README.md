@@ -2,7 +2,9 @@
 
 Turn your Windows desktop into a live dashboard. Your wallpaper shows the time, weather, your calendar, alarms and reminders, right behind your desktop icons, on top of any picture you like.
 
-![The dashboard with the customize panel open](docs/editor.png)
+**Website:** [live-wallpaper-dashboard.vercel.app](https://live-wallpaper-dashboard.vercel.app)
+
+![A Windows desktop with the dashboard's widgets](site/images/desktop.jpg)
 
 ## Download
 
@@ -17,7 +19,7 @@ Works on Windows 10 and 11 (64-bit). You only download it once: new versions ins
 When the app starts, your wallpaper becomes the dashboard and a small icon appears in the **system tray** (bottom-right corner, near the clock; click the **^** arrow if you don't see it). Right-click that icon for everything:
 
 - **Customize wallpaper**: change the picture, move widgets, set alarms and connect your calendar. You can also double-click the tray icon.
-- **Alarms** and **Calendars**: jump straight to those.
+- **Alarms** and **Calendars**: open those right over your desktop.
 - **Pause live wallpaper**: go back to your normal Windows wallpaper for a while.
 - **Clickable widgets on the desktop**: turn desktop clicks on the widgets on or off (see below).
 - **Start with Windows**: open the app automatically when you sign in.
@@ -31,13 +33,15 @@ The widgets work right on your desktop. Click an empty part of the desktop over 
 
 | Click | What happens |
 |---|---|
+| A reminder | Ticks it off (click again to untick) |
+| The reminders box | Type a new reminder right there and press **Enter** |
+| Alarm bell | Your alarms pop up, to add or change one |
+| A date on the calendar | That day's events pop up, where you can add one |
+| An event in **Upcoming** | The event pops up so you can change it |
 | Weather | Opens the Windows Weather app |
 | Battery | Opens Windows' Power & battery settings |
-| Alarm bell | Opens your alarms |
-| A date on the calendar | Shows that day's events, where you can add one |
-| An event in **Upcoming** | Opens the event so you can change it |
-| A reminder | Ticks it off (click again to untick) |
-| The reminders box | Opens it so you can type a new reminder |
+
+Only that one thing pops up over your desktop, not the whole app. When you're done, press **Esc**, click the **x**, or click anywhere else, and you're back on your desktop with the change already showing.
 
 A widget lights up when your mouse is over it. Your desktop keeps working as usual: clicking an icon only selects the icon, dragging still selects icons, right-click still shows the Windows menu, and nothing happens when a window is in front of the widget.
 
@@ -95,6 +99,7 @@ The app updates itself. It checks for a new version when it starts and every few
 
 ## Privacy
 
+- Full details: [Privacy Policy](https://live-wallpaper-dashboard.vercel.app/privacy).
 - Everything you set up (wallpaper, alarms, reminders, layout) is stored on your computer.
 - Google Calendar: the app talks directly to Google. Your sign-in is stored encrypted by Windows, and **Sign out** in the Calendars panel removes the app's access.
 - Weather uses [Open-Meteo](https://open-meteo.com); your approximate location comes from Windows or from your internet connection.
@@ -104,11 +109,11 @@ The app updates itself. It checks for a new version when it starts and every few
 
 **I can't see the tray icon.** Click the **^** arrow at the bottom-right of the taskbar; you can drag the icon out so it's always visible.
 
-**Google says "access blocked" or "This app is waiting for Google's review".** Google sign-in is still in testing, so only invited accounts can sign in. Contact the developer through her [GitHub profile](https://github.com/rabiya43) to be added. Please don't post your email address in a public issue.
+**Google says "Google hasn't verified this app".** That's expected: the app is new and hasn't been through Google's review yet. Click **Advanced**, then **Go to Live Wallpaper Dashboard**. The app only uses your calendar as explained in the [Privacy Policy](https://live-wallpaper-dashboard.vercel.app/privacy).
 
-**Google says "Google hasn't verified this app".** That's expected while the app is being reviewed by Google. Click **Continue**.
+**Google says "Access blocked" with a school or work account.** Your school or company controls which apps that account can use. Ask its IT team to allow the app, or sign in with a personal Google account.
 
-**The app asks me to sign in to Google again.** While the app is in testing, Google ends sign-ins after 7 days. Sign in again from the Calendars panel.
+**The app asks me to sign in to Google again.** Your sign-in expired or was removed from your Google Account. Sign in again from the Calendars panel.
 
 **Clicking a widget on my desktop does nothing.** Check that **Clickable widgets on the desktop** is ticked in the tray menu, that no window is in front of it, and that you're clicking empty desktop rather than an icon. If an icon sits on top of the widget, click beside it or move the icon.
 

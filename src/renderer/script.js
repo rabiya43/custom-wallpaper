@@ -1,11 +1,13 @@
-// The desktop app serves this page over app:// and opens it in one of two modes:
+// The desktop app serves this page over app:// and opens it in one of three modes:
 //   wallpaper  behind the desktop icons; clicks on empty desktop reach the widgets
 //   editor     on top of everything, for customizing
+//   popup      just one panel over the desktop (alarms, a day, an event, reminders)
 // Opened directly in a browser the page is fully interactive, but search needs the app.
 const pageParams = new URLSearchParams(location.search);
 const IS_APP = location.protocol === 'app:';
 const MODE = IS_APP ? (pageParams.get('mode') || 'editor') : 'browser';
 document.body.classList.add(`mode-${MODE}`);
+const INTERACTIVE = MODE === 'editor' || MODE === 'popup';  // panels can be used
 
 const dashboard = document.querySelector('.dashboard-container');
 if (IS_APP) {
@@ -17,7 +19,7 @@ if (IS_APP) {
 
 // --- Draggable, Resizable, & Edit Mode ---
 document.addEventListener('dblclick', (e) => {
-    if (MODE === 'wallpaper') return;
+    if (MODE === 'wallpaper' || MODE === 'popup') return;
     const widget = e.target.closest('.drag-widget');
     if (widget) {
         document.querySelectorAll('.drag-widget').forEach(w => w.classList.remove('edit-mode'));
@@ -114,17 +116,25 @@ function saveWidget(widget, hidden = false) {
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(layoutState));
 }
 
+const MIN_WIDGET_HEIGHT = 120;
+
 function restoreLayout() {
     document.querySelectorAll('.drag-widget[data-id]').forEach(widget => {
         const saved = layoutState[widget.dataset.id];
-        if (!saved) return;
-        if (saved.hidden) { widget.style.display = 'none'; return; }
-        ['top', 'left', 'right', 'bottom', 'width', 'height'].forEach(prop => {
-            if (saved[prop]) widget.style[prop] = saved[prop];
-        });
-        // Keep widgets reachable if the screen is smaller than when the layout was saved
+        if (saved?.hidden) { widget.style.display = 'none'; return; }
+        if (saved) {
+            ['top', 'left', 'right', 'bottom', 'width', 'height'].forEach(prop => {
+                if (saved[prop]) widget.style[prop] = saved[prop];
+            });
+        }
+        // Keep widgets on screen when it's smaller than the layout was made for (a small laptop,
+        // or large display scaling): shrink a widget that runs off the bottom, then move it if needed
         const box = dashboard.getBoundingClientRect();
-        const rect = widget.getBoundingClientRect();
+        let rect = widget.getBoundingClientRect();
+        if (rect.bottom > box.bottom - 20 && widget.style.height) {
+            widget.style.height = Math.max(MIN_WIDGET_HEIGHT, box.bottom - 20 - rect.top) + 'px';
+            rect = widget.getBoundingClientRect();
+        }
         if (rect.right > box.right) widget.style.left = Math.max(0, box.width - rect.width - 20) + 'px';
         if (rect.bottom > box.bottom) widget.style.top = Math.max(0, box.height - rect.height - 20) + 'px';
     });
@@ -815,6 +825,7 @@ async function initDashboardTheme() {
     let palette = DEFAULT_PALETTE;
     try { palette = JSON.parse(localStorage.getItem('dashboard-palette')).palette || DEFAULT_PALETTE; } catch (e) { /* first run */ }
     applyPalette(palette);
+    if (MODE === 'popup') return;  // shows only a panel, never the picture
 
     const savedWp = await WallpaperDB.load();
     if (savedWp) {
@@ -822,7 +833,7 @@ async function initDashboardTheme() {
     } else {
         setWallpaperDisplay('');
         // First run: start with a built-in wallpaper instead of a plain color
-        if (MODE !== 'wallpaper' && !localStorage.getItem('wallpaper-initialized')) {
+        if (MODE === 'editor' && !localStorage.getItem('wallpaper-initialized')) {
             localStorage.setItem('wallpaper-initialized', '1');
             await applyBuiltin(BUILTIN_WALLPAPERS[0]).catch(() => {});
         }
@@ -1219,6 +1230,7 @@ function closePanel(modal) {
         eventReturnDay = null;
         openDay(day);
     }
+    closePopupIfDone();
 }
 
 document.querySelectorAll(PANELS).forEach(modal => {
@@ -1492,6 +1504,7 @@ async function showEditorTarget(target) {
     } else if (typeof target === 'string') {
         openPanel(target);
     } else if (target?.day) {
+        await firstCalendarLoad;
         openDay(target.day);
     } else if (target?.event) {
         await firstCalendarLoad;
@@ -1735,7 +1748,7 @@ async function readEventWhen() {
         : `${friendlyDate(ef.date.value)}, ${format12(ef.start.value)} – ${format12(ef.end.value)}`;
 }
 
-if (IS_APP && window.desktop && MODE === 'editor') {
+if (IS_APP && window.desktop && INTERACTIVE) {
     const googleError = document.getElementById('google-error');
     const waiting = document.getElementById('google-waiting');
     const signInBtn = document.getElementById('google-sign-in');
@@ -1913,6 +1926,12 @@ function addTodo() {
 }
 todoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
 renderReminders();
+// Reminders added or ticked in another window (the popup, the editor or on the desktop) show up here too
+window.addEventListener('storage', (e) => {
+    if (e.key !== 'dashboard-reminders') return;
+    try { reminders = JSON.parse(e.newValue) || []; } catch (err) { reminders = []; }
+    renderReminders();
+});
 
 
 // --- Weather (Open-Meteo, no API key) ---
@@ -1986,7 +2005,8 @@ async function loadWeather() {
             if (!res.ok) throw new Error();
             const loc = await res.json();
             showLocationSource(loc);
-            return fetchWeather(loc.lat, loc.lon, loc.source === 'windows' ? undefined : loc.name);
+            if (loc.windows === 'pending') setTimeout(loadWeather, 15000);  // switch to the exact location once Windows answers
+            return fetchWeather(loc.lat, loc.lon, loc.name || undefined);
         } catch (e) {
             return useDefault();
         }
@@ -2014,8 +2034,10 @@ function showLocationSource(loc) {
     }
 }
 
-loadWeather();
-setInterval(loadWeather, 30 * 60 * 1000);
+if (MODE !== 'popup') {
+    loadWeather();
+    setInterval(loadWeather, 30 * 60 * 1000);
+}
 
 // In the editor: the weather widget opens the Windows Weather app; the pin opens Location settings
 if (MODE === 'editor' && window.desktop) {
@@ -2044,12 +2066,12 @@ if (MODE === 'editor' && window.desktop) {
 // --- Clicks on the desktop (wallpaper mode) ---
 // The app passes on clicks that land on empty desktop, not on an icon or a window (see
 // src/main/desktop-input.js), so the widgets work right on the wallpaper. Anything that needs
-// typing opens the editor at that spot.
+// typing opens just that panel over the desktop (popup mode below).
 function desktopAction(x, y) {
     const el = document.elementFromPoint(x, y);
     const widget = el?.closest('.drag-widget');
     if (!widget) return null;
-    const open = target => () => window.desktop.openEditorAt(target);
+    const open = target => () => window.desktop.openPopup(target);
 
     const todo = el.closest('.todo-item');
     if (todo) return { el: todo, run: () => todo.querySelector('input[type="checkbox"]').click() };
@@ -2097,5 +2119,41 @@ if (MODE === 'wallpaper' && window.desktop?.onDesktopClick) {
         action.el.classList.add('desktop-pressed');
         setTimeout(() => action.el.classList.remove('desktop-pressed'), 180);
         action.run();
+    });
+}
+
+// --- Popup: one panel over the desktop ---
+// Opened by clicking a widget on the desktop. Closing the panel (Esc, x, clicking outside it)
+// puts the popup away, and you're back on the desktop.
+let popupOpening = false;
+
+function closePopupIfDone() {
+    if (MODE !== 'popup' || popupOpening || document.body.classList.contains('popup-todo')) return;
+    if ([...document.querySelectorAll(PANELS)].every(m => m.hidden)) window.desktop.closePopup();
+}
+
+if (MODE === 'popup' && window.desktop) {
+    window.desktop.onPopup(async (target) => {
+        popupOpening = true;
+        eventReturnDay = null;
+        closeAlarmForm();
+        document.querySelectorAll(PANELS).forEach(m => { m.hidden = true; });
+        // Reminders: the reminders box itself, right where it is on the desktop, ready to type in
+        document.body.classList.toggle('popup-todo', target === 'todo');
+        if (target === 'todo') todoInput.value = '';
+        await showEditorTarget(target);
+        popupOpening = false;
+        // Give it a moment to draw, so the last panel never flashes up (animation frames don't run while hidden)
+        setTimeout(() => window.desktop.popupReady(), 40);
+    });
+    const closeTodo = () => {
+        document.body.classList.remove('popup-todo');
+        window.desktop.closePopup();
+    };
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.body.classList.contains('popup-todo')) closeTodo();
+    });
+    document.addEventListener('mousedown', (e) => {
+        if (document.body.classList.contains('popup-todo') && !e.target.closest('[data-id="todo"]')) closeTodo();
     });
 }
