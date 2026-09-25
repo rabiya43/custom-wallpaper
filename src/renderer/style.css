@@ -366,12 +366,15 @@ body {
 }
 #todo-list-container {
     flex-grow: 1;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 #todo-list-container::-webkit-scrollbar { width: 0px; }
+/* Leave room for the "Type a reminder" box pinned to the bottom (hidden on the wallpaper) */
+body:not(.mode-wallpaper) #todo-list-container { margin-bottom: 38px; }
 .todo-item {
     display: flex;
     align-items: flex-start;

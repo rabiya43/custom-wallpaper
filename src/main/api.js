@@ -45,25 +45,38 @@ async function fetchImage(raw) {
     return { buf, type };
 }
 
-let cachedIpLocation = null;
+let cachedIpLocation = null;  // { time, value }
 async function ipLocation() {
-    if (cachedIpLocation) return cachedIpLocation;
+    if (cachedIpLocation && Date.now() - cachedIpLocation.time < 60 * 60 * 1000) return cachedIpLocation.value;
     const res = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(8000) });
     const data = await res.json();
     if (!data.success) throw new Error('Location lookup failed');
-    cachedIpLocation = { lat: data.latitude, lon: data.longitude, name: data.city };
-    return cachedIpLocation;
+    cachedIpLocation = { time: Date.now(), value: { lat: data.latitude, lon: data.longitude, name: data.city } };
+    return cachedIpLocation.value;
+}
+
+function distanceKm(a, b) {
+    const rad = d => d * Math.PI / 180;
+    const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2
+        + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lon - a.lon) / 2) ** 2;
+    return 12742 * Math.asin(Math.sqrt(h));
 }
 
 /**
  * Windows' Location service when it's on (exact), otherwise an approximate location from the
- * internet connection. `windows` tells the dashboard whether Windows Location could be used.
+ * internet connection. `windows` tells the dashboard whether Windows Location could be used;
+ * 'pending' means Windows hasn't answered yet (it can take several seconds), so ask again soon.
+ * Windows gives no place name, so the city comes from the internet connection when it's nearby.
  */
 async function location() {
-    const win = await windowsLocation.get();
-    if (win.status === 'ok') return { lat: win.lat, lon: win.lon, source: 'windows', windows: 'ok' };
-    const ip = await ipLocation();
-    return { ...ip, source: 'ip', windows: win.status };
+    const win = await Promise.race([windowsLocation.get(), new Promise(r => setTimeout(r, 2500, null))]);
+    const ip = await ipLocation().catch(() => null);
+    if (win?.status === 'ok') {
+        const name = ip && distanceKm(ip, win) < 60 ? ip.name : '';
+        return { lat: win.lat, lon: win.lon, name, source: 'windows', windows: 'ok' };
+    }
+    if (!ip) throw new Error('Location lookup failed');
+    return { ...ip, source: 'ip', windows: win ? win.status : 'pending' };
 }
 
 async function handle(request) {

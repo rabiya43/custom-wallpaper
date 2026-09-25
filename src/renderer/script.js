@@ -116,17 +116,25 @@ function saveWidget(widget, hidden = false) {
     localStorage.setItem(LAYOUT_KEY, JSON.stringify(layoutState));
 }
 
+const MIN_WIDGET_HEIGHT = 120;
+
 function restoreLayout() {
     document.querySelectorAll('.drag-widget[data-id]').forEach(widget => {
         const saved = layoutState[widget.dataset.id];
-        if (!saved) return;
-        if (saved.hidden) { widget.style.display = 'none'; return; }
-        ['top', 'left', 'right', 'bottom', 'width', 'height'].forEach(prop => {
-            if (saved[prop]) widget.style[prop] = saved[prop];
-        });
-        // Keep widgets reachable if the screen is smaller than when the layout was saved
+        if (saved?.hidden) { widget.style.display = 'none'; return; }
+        if (saved) {
+            ['top', 'left', 'right', 'bottom', 'width', 'height'].forEach(prop => {
+                if (saved[prop]) widget.style[prop] = saved[prop];
+            });
+        }
+        // Keep widgets on screen when it's smaller than the layout was made for (a small laptop,
+        // or large display scaling): shrink a widget that runs off the bottom, then move it if needed
         const box = dashboard.getBoundingClientRect();
-        const rect = widget.getBoundingClientRect();
+        let rect = widget.getBoundingClientRect();
+        if (rect.bottom > box.bottom - 20 && widget.style.height) {
+            widget.style.height = Math.max(MIN_WIDGET_HEIGHT, box.bottom - 20 - rect.top) + 'px';
+            rect = widget.getBoundingClientRect();
+        }
         if (rect.right > box.right) widget.style.left = Math.max(0, box.width - rect.width - 20) + 'px';
         if (rect.bottom > box.bottom) widget.style.top = Math.max(0, box.height - rect.height - 20) + 'px';
     });
@@ -1997,7 +2005,8 @@ async function loadWeather() {
             if (!res.ok) throw new Error();
             const loc = await res.json();
             showLocationSource(loc);
-            return fetchWeather(loc.lat, loc.lon, loc.source === 'windows' ? undefined : loc.name);
+            if (loc.windows === 'pending') setTimeout(loadWeather, 15000);  // switch to the exact location once Windows answers
+            return fetchWeather(loc.lat, loc.lon, loc.name || undefined);
         } catch (e) {
             return useDefault();
         }

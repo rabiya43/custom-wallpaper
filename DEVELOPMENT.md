@@ -59,6 +59,12 @@ Run `npm run dist`, then attach **all three** files from `dist/` to a new GitHub
 
 The updater reads `latest.yml` to find new versions, and the blockmap lets it download only what changed. The installer's name has no spaces so it still matches `latest.yml` after uploading (GitHub turns spaces into dots).
 
+## Website
+
+`site/` is the app's website (home page and privacy policy), plain HTML and CSS. It's deployed on Vercel as its own project with **Root Directory** set to `site`, so every push to `main` updates it. The privacy policy page is the one linked from Google's consent screen, so keep it accurate when the app starts using data differently.
+
+To refresh the screenshots in `site/images/`, take them from a throwaway profile with sample data, never from a real calendar.
+
 ## How it works
 
 **Behind the icons.** Explorer draws the desktop icons in a window called `SHELLDLL_DefView`. The app asks Explorer to create a `WorkerW` layer between the icons and the static wallpaper, then places its own window there. On Windows 11 24H2 and later the window goes inside `Progman`, just below the icons. If Explorer restarts, the app re-attaches. On quit it asks Windows to repaint the normal wallpaper. See `src/main/desktop-host.js`.
@@ -106,6 +112,7 @@ src/
     web.html, web.js                   toolbar of the web search window
     alarm.html, alarm.js, sounds.js    ringing window and alarm tones
 build/icon.png
+site/                    the website: index.html, privacy.html, style.css, images/
 .github/workflows/release.yml
 ```
 
