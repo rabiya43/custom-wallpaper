@@ -1,9 +1,9 @@
 // Automatic updates from the GitHub Releases page.
 //
 // The installed app checks for a newer release shortly after starting and every few hours,
-// downloads it in the background (only the changed parts, using the .blockmap file), and
-// installs it the next time the app restarts. Settings, alarms, sign-ins and the wallpaper
-// are stored separately from the app, so they are kept.
+// downloads it in the background (only the changed parts, using the .blockmap file), then
+// offers to install it (onReady); otherwise it installs the next time the app closes.
+// Settings, alarms, sign-ins and the wallpaper are stored separately from the app, so they are kept.
 const { app } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
@@ -47,8 +47,9 @@ function setup(handlers) {
         manualCheck = false;
     });
     autoUpdater.on('update-downloaded', info => {
-        set('ready', { version: info.version });
-        listeners.notify('Update ready', `Version ${info.version} will install when the app restarts. Use "Restart to update" in the tray menu to do it now.`);
+        set('ready', { version: info.version, notes: notesText(info.releaseNotes) });
+        if (listeners.onReady) listeners.onReady({ version: state.version, notes: state.notes });
+        else listeners.notify('Update ready', `Version ${info.version} will install when the app restarts.`);
         manualCheck = false;
     });
     autoUpdater.on('error', err => {
@@ -64,9 +65,25 @@ function setup(handlers) {
     return true;
 }
 
+/**
+ * The release description from GitHub (HTML) as a few plain lines for the update card.
+ * Bullet points in the release description become the "what's new" list.
+ */
+function notesText(releaseNotes) {
+    let html = Array.isArray(releaseNotes) ? (releaseNotes[0]?.note || '') : (releaseNotes || '');
+    html = String(html)
+        .replace(/<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/gi, '')  // headings like "What's new" aren't list items
+        .replace(/<\/(li|p|h[1-6]|div)>|<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, ' ');
+    return html.split('\n').map(l => l.trim()).filter(Boolean)
+        .slice(0, 8).map(l => (l.length > 140 ? `${l.slice(0, 137)}...` : l)).join('\n');
+}
+
 function check(manual = true) {
     if (state.status === 'ready') {
-        if (manual) listeners.notify('Update ready', `Version ${state.version} is downloaded. Use "Restart to update" in the tray menu.`);
+        if (manual && listeners.onReady) listeners.onReady({ version: state.version, notes: state.notes });
         return;
     }
     if (state.status === 'checking' || state.status === 'downloading') return;
@@ -86,4 +103,4 @@ function stop() {
     clearTimeout(timer);
 }
 
-module.exports = { setup, check, restartAndInstall, stop, state: () => ({ ...state }) };
+module.exports = { setup, check, restartAndInstall, stop, notesText, state: () => ({ ...state }) };

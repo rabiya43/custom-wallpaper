@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('desktop', {
     saveAlarms: list => ipcRenderer.invoke('alarms:save', list),
     pickAlarmSound: () => ipcRenderer.invoke('alarms:pick-sound'),
     alarmAction: (id, action) => ipcRenderer.send('alarm:action', { id, action }),
+    updateAction: action => ipcRenderer.send('update:action', action),  // 'install' | 'later'
     onAlarmsChanged: cb => ipcRenderer.on('alarms:changed', () => cb()),
 
     minimizeEditor: () => ipcRenderer.send('editor:minimize'),

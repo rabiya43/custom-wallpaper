@@ -95,7 +95,14 @@ Everything you change shows up in Google Calendar on your phone and other device
 
 ## Updates
 
-The app updates itself. It checks for a new version when it starts and every few hours, downloads it in the background, and installs it the next time the app restarts. To update right away, right-click the tray icon and choose **Restart to update**. Your wallpaper, alarms, layout and calendar sign-in are kept.
+The app updates itself. When a new version is ready, a small card appears in the bottom-right corner showing what's new:
+
+- **Update now** installs it and reopens the app within a few seconds.
+- **Later** installs it the next time the app closes.
+
+Your wallpaper, alarms, layout and calendar sign-in are kept. You can also check yourself: right-click the tray icon and choose **Check for updates**.
+
+Versions before 1.2.0 can't update themselves, so if you have one of those, download the latest version once from the [Releases page](https://github.com/rabiya43/custom-wallpaper/releases/latest).
 
 ## Privacy
 

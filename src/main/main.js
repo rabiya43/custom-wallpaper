@@ -33,6 +33,7 @@ let wallpaperWin = null;
 let editorWin = null;
 let popupWin = null;
 let popupBusy = 0;  // a file dialog or Google sign-in is open from the popup, so it stays open
+let updateWin = null;
 let webWin = null;
 let webView = null;
 let quitting = false;
@@ -457,6 +458,45 @@ function broadcast(channel) {
     }
 }
 
+// ------------------------------------------------------------------ update card
+
+/**
+ * A small card in the corner when a new version has downloaded: "Update now" installs it and
+ * reopens the app; "Later" leaves it to install when the app next closes. It appears without
+ * taking the keyboard from whatever you're doing.
+ */
+function showUpdateCard({ version, notes }) {
+    if (updateWin) updateWin.close();
+    const area = targetDisplay().workArea;
+    const width = 400, height = 240;
+    updateWin = new BrowserWindow({
+        width, height,
+        x: area.x + area.width - width - 8,
+        y: area.y + area.height - height - 8,
+        show: false,
+        frame: false,
+        transparent: true,
+        resizable: false,
+        movable: false,
+        minimizable: false,
+        maximizable: false,
+        skipTaskbar: true,
+        alwaysOnTop: true,
+        title: 'Update ready',
+        icon: ICON,
+        webPreferences: { preload: path.join(__dirname, 'preload.js') },
+    });
+    const q = new URLSearchParams({ version: version || '', notes: notes || '' });
+    updateWin.loadURL(`app://dashboard/update.html?${q}`);
+    updateWin.once('ready-to-show', () => updateWin?.showInactive());
+    updateWin.on('closed', () => { updateWin = null; });
+}
+
+ipcMain.on('update:action', (_e, action) => {
+    if (action === 'install') updater.restartAndInstall();
+    else updateWin?.close();
+});
+
 // ------------------------------------------------------------------ alarms
 
 const ringing = new Map();  // alarm id -> window
@@ -651,6 +691,7 @@ app.whenReady().then(() => {
 
     updatesEnabled = updater.setup({
         onChange: () => tray?.setContextMenu(buildTrayMenu()),
+        onReady: showUpdateCard,
         notify,
         beforeInstall: () => { quitting = true; destroyWallpaper(); },
     });
@@ -672,8 +713,8 @@ if (process.env.LWD_TEST_PROFILE) {
     global.lwdTest = {
         setWallpaperFromUrl, openWebSearch, openEditor, openEditorPanel, ring, fetchImage: api.fetchImage,
         alarms, calendars, ringing, config, google, when, updater, trayMenu: () => buildTrayMenu().items.map(i => i.label),
-        desktopInput, toPage, startDesktopClicks, openPopup, desktopHost,
-        windows: () => ({ wallpaperWin, editorWin, webWin, webView, popupWin }),
+        desktopInput, toPage, startDesktopClicks, openPopup, desktopHost, showUpdateCard,
+        windows: () => ({ wallpaperWin, editorWin, webWin, webView, popupWin, updateWin }),
     };
 }
 

@@ -14,6 +14,7 @@ const STATIC_FILES = {
     'index.html': 'text/html', 'script.js': 'text/javascript', 'style.css': 'text/css',
     'web.html': 'text/html', 'web.js': 'text/javascript',
     'alarm.html': 'text/html', 'alarm.js': 'text/javascript', 'sounds.js': 'text/javascript',
+    'update.html': 'text/html', 'update.js': 'text/javascript',
 };
 const SOUND_TYPES = {
     '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',

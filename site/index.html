@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Wallpaper Dashboard: Mac-style desktop widgets for Windows</title>
-    <meta name="description" content="A free Windows app that turns your wallpaper into a live dashboard: clock, weather, Google Calendar, alarms and reminders, right on your desktop.">
+    <meta name="description" content="A free Windows app that puts Mac-style widgets on your desktop: clock, weather, Google Calendar, alarms and reminders, right on your wallpaper.">
+    <meta name="theme-color" content="#07110d">
     <meta property="og:title" content="Live Wallpaper Dashboard">
-    <meta property="og:description" content="Mac-style desktop widgets for Windows: clock, weather, Google Calendar, alarms and reminders, right on your desktop.">
+    <meta property="og:description" content="Mac-style desktop widgets for Windows: clock, weather, Google Calendar, alarms and reminders, right on your wallpaper.">
     <meta property="og:image" content="/images/desktop.jpg">
     <meta property="og:type" content="website">
     <link rel="icon" type="image/png" href="/icon.png">
@@ -14,16 +15,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
+    <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }</script>
 </head>
 <body>
+    <canvas id="scene" aria-hidden="true"></canvas>
+
     <header class="site-header">
         <div class="wrap">
             <a class="brand" href="/" aria-label="Live Wallpaper Dashboard home"><img src="/icon.png" alt=""><span>Live Wallpaper Dashboard</span></a>
             <nav>
                 <a class="hide-sm" href="#features">Features</a>
                 <a class="hide-sm" href="#install">Install</a>
-                <a href="/privacy">Privacy</a>
-                <a href="https://github.com/rabiya43/custom-wallpaper">GitHub</a>
+                <a class="hide-sm" href="/privacy">Privacy</a>
+                <a class="btn btn-primary" href="https://github.com/rabiya43/custom-wallpaper/releases/latest">Download</a>
             </nav>
         </div>
     </header>
@@ -31,54 +35,98 @@
     <main>
         <div class="hero">
             <div class="wrap">
-                <span class="eyebrow">Free for Windows 10 and 11</span>
-                <h1>Mac-style desktop widgets, <span>now on Windows</span></h1>
-                <p class="lead">Your wallpaper becomes a live dashboard: the time, weather, your Google Calendar, alarms and reminders, right on your desktop, behind your icons.</p>
-                <div class="actions">
+                <span class="eyebrow reveal"><span class="dot"></span> Free for Windows 10 and 11</span>
+                <h1 class="reveal d1">Mac-style desktop widgets, <span class="gradient-text">now on Windows</span></h1>
+                <p class="lead reveal d2">Your wallpaper becomes a live dashboard: the time, weather, your Google Calendar, alarms and reminders, right on your desktop, behind your icons.</p>
+                <div class="actions reveal d3">
                     <a class="btn btn-primary" href="https://github.com/rabiya43/custom-wallpaper/releases/latest"><i class="fa-brands fa-windows"></i> Download for Windows</a>
                     <a class="btn btn-ghost" href="https://github.com/rabiya43/custom-wallpaper"><i class="fa-brands fa-github"></i> View on GitHub</a>
                 </div>
-                <p class="fine">Free and open source. No account needed.</p>
-                <img class="screen" src="/images/desktop.jpg" width="1920" height="1200" alt="A Windows desktop with widgets for alarms, battery, weather, a calendar, reminders and upcoming events over a green hills wallpaper">
+                <p class="fine reveal d3">Free and open source. No account needed.</p>
+
+                <div class="stage reveal" id="stage">
+                    <div class="float f1 weather" aria-hidden="true"><div class="inner"><i class="fa-solid fa-sun sun"></i><div><b>30°</b><small>Clear sky</small></div></div></div>
+                    <div class="float f2" aria-hidden="true"><div class="inner"><span class="ic"><i class="fa-solid fa-bell"></i></span><div><b>7:00 AM</b><small>Wake up · Weekdays</small></div></div></div>
+                    <div class="float f3" aria-hidden="true"><div class="inner"><span class="check"><i class="fa-solid fa-check"></i></span><div><b>Submit assignment</b><small>Ticked off on the desktop</small></div></div></div>
+                    <div class="float f4" aria-hidden="true"><div class="inner"><span class="ic"><i class="fa-regular fa-calendar"></i></span><div><b>Deep Learning lecture</b><small>Tomorrow, 9:00 AM</small></div></div></div>
+                    <div class="screen" id="screen">
+                        <img src="/images/desktop.jpg" width="1920" height="1200" alt="A Windows desktop with widgets for alarms, battery, weather, a calendar, reminders and upcoming events over a green hills wallpaper">
+                    </div>
+                </div>
             </div>
         </div>
 
+        <section>
+            <div class="wrap">
+                <div class="section-title reveal">
+                    <span class="label">Why</span>
+                    <h2>Windows can't do this by itself</h2>
+                    <p>Macs let you put widgets on the desktop. Windows keeps them in a side panel that hides away. This app brings them to your desktop, where you can see them.</p>
+                </div>
+                <div class="compare">
+                    <div class="card reveal">
+                        <div class="big"><i class="fa-brands fa-apple"></i></div>
+                        <h3>macOS</h3>
+                        <p>Widgets on the desktop</p>
+                    </div>
+                    <div class="card reveal d1">
+                        <div class="big"><i class="fa-brands fa-windows"></i></div>
+                        <h3>Windows</h3>
+                        <p>Widgets only in a panel that slides out</p>
+                    </div>
+                    <div class="card yes reveal d2">
+                        <div class="big"><img src="/icon.png" alt="" width="40" height="40" style="display:inline-block;border-radius:10px"></div>
+                        <h3>Windows with this app</h3>
+                        <p>Widgets on your desktop, and more</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="features">
             <div class="wrap">
-                <div class="section-title">
-                    <h2>Everything you need, at a glance</h2>
-                    <p>Windows can't put widgets on your desktop by itself. This app can, and it takes a minute to set up.</p>
+                <div class="section-title reveal">
+                    <span class="label">Features</span>
+                    <h2>Everything at a glance</h2>
+                    <p>Set up in a minute. No accounts, no settings to fiddle with.</p>
                 </div>
                 <div class="features">
-                    <div class="feature">
+                    <div class="card wide reveal">
                         <div class="icon"><i class="fa-solid fa-hand-pointer"></i></div>
-                        <h3>Widgets you can click</h3>
-                        <p>Tick off a reminder, open a day on the calendar or change an alarm, right on your desktop. Your icons keep working as usual.</p>
+                        <h3>Widgets you can click, right on the desktop</h3>
+                        <p>Tick off a reminder, open a day on the calendar or change an alarm without opening anything. Just that one thing pops up, and Esc takes you back. Your icons keep working as usual.</p>
                     </div>
-                    <div class="feature">
+                    <div class="card reveal d1">
                         <div class="icon"><i class="fa-regular fa-calendar"></i></div>
                         <h3>Your Google Calendar</h3>
-                        <p>See what's coming up, and add or edit events without opening a browser. Get reminder emails from Google.</p>
+                        <p>See what's next, add and edit events, and get reminder emails from Google.</p>
                     </div>
-                    <div class="feature">
+                    <div class="card reveal">
                         <div class="icon"><i class="fa-solid fa-bell"></i></div>
                         <h3>Alarms that understand you</h3>
-                        <p>Type <em>tomorrow 7am</em> or <em>every weekday 8:30</em>. Pick a tone or your own song.</p>
+                        <p>Type it the way you'd say it. Pick a tone or your own song.</p>
+                        <div class="chips"><span>tomorrow 7am</span><span>every weekday 8:30</span><span>in 20 min</span></div>
                     </div>
-                    <div class="feature">
-                        <div class="icon"><i class="fa-solid fa-image"></i></div>
+                    <div class="card wide reveal d1">
+                        <div class="icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
                         <h3>Any wallpaper, instantly</h3>
-                        <p>Search for a character, movie or place and pick a picture, or use your own. Widget colors match it automatically.</p>
+                        <p>Search for a character, movie or place and pick a picture, or use your own. The widgets change color to match it automatically.</p>
+                        <div class="chips"><span>Studio Ghibli</span><span>Frieren</span><span>Northern lights</span><span>Your own photo</span></div>
                     </div>
-                    <div class="feature">
+                    <div class="card reveal">
                         <div class="icon"><i class="fa-solid fa-cloud-sun"></i></div>
                         <h3>Weather and battery</h3>
-                        <p>Live weather for where you are, and your battery at a glance. One click opens the Windows Weather app or battery settings.</p>
+                        <p>Live weather where you are, and your battery at a glance.</p>
                     </div>
-                    <div class="feature">
+                    <div class="card reveal d1">
+                        <div class="icon"><i class="fa-solid fa-list-check"></i></div>
+                        <h3>Reminders</h3>
+                        <p>Click the reminders box on your desktop and start typing.</p>
+                    </div>
+                    <div class="card reveal d2">
                         <div class="icon"><i class="fa-solid fa-arrows-rotate"></i></div>
                         <h3>Updates itself</h3>
-                        <p>Download it once. New versions install quietly in the background.</p>
+                        <p>When a new version is ready, one click installs it.</p>
                     </div>
                 </div>
             </div>
@@ -87,39 +135,42 @@
         <section>
             <div class="wrap">
                 <div class="showcase">
-                    <div class="text">
+                    <div class="text reveal">
+                        <span class="label">On your desktop</span>
                         <h3>Click, change, done</h3>
                         <p>Click the bell, a date or an event on your desktop and just that pops up. Make your change, press Esc, and you're back on your desktop.</p>
                     </div>
-                    <img src="/images/alarms.jpg" width="1920" height="1140" loading="lazy" alt="The alarms panel shown over the desktop">
+                    <div class="shot reveal d1"><img src="/images/alarms.jpg" width="1920" height="1140" loading="lazy" alt="The alarms panel shown over the desktop"></div>
                 </div>
                 <div class="showcase flip">
-                    <div class="text">
+                    <div class="text reveal">
+                        <span class="label">Customize</span>
                         <h3>Make it yours</h3>
                         <p>Move and resize every widget, hide the ones you don't need, and switch wallpapers in a click. Six built-in wallpapers look sharp on any screen.</p>
                     </div>
-                    <img src="/images/customize.jpg" width="1920" height="1140" loading="lazy" alt="Customizing the dashboard: wallpaper search, built-in wallpapers and layout options">
+                    <div class="shot reveal d1"><img src="/images/customize.jpg" width="1920" height="1140" loading="lazy" alt="Customizing the dashboard: wallpaper search, built-in wallpapers and layout options"></div>
                 </div>
             </div>
         </section>
 
         <section id="install">
             <div class="wrap">
-                <div class="section-title">
-                    <h2>Install in a minute</h2>
+                <div class="section-title reveal">
+                    <span class="label">Install</span>
+                    <h2>Ready in a minute</h2>
                 </div>
                 <div class="steps">
-                    <div class="step">
+                    <div class="card reveal">
                         <h3>Download</h3>
                         <p>Get the <strong>Setup .exe</strong> file from the <a href="https://github.com/rabiya43/custom-wallpaper/releases/latest">latest release</a>.</p>
                     </div>
-                    <div class="step">
+                    <div class="card reveal d1">
                         <h3>Run the installer</h3>
                         <p>If Windows says "Windows protected your PC", click <strong>More info</strong>, then <strong>Run anyway</strong>. It appears because the app is new, not because anything is wrong.</p>
                     </div>
-                    <div class="step">
+                    <div class="card reveal d2">
                         <h3>Make it yours</h3>
-                        <p>Pick a wallpaper and connect your calendar. Find everything under the app's icon near the clock on the taskbar.</p>
+                        <p>Pick a wallpaper and connect your calendar. Everything is under the app's icon near the clock on the taskbar.</p>
                     </div>
                 </div>
             </div>
@@ -127,7 +178,7 @@
 
         <section>
             <div class="wrap">
-                <div class="cta">
+                <div class="cta reveal">
                     <h2>Give your desktop a glow-up</h2>
                     <p>Free, open source, and made for Windows.</p>
                     <a class="btn btn-primary" href="https://github.com/rabiya43/custom-wallpaper/releases/latest"><i class="fa-brands fa-windows"></i> Download for Windows</a>
@@ -146,5 +197,8 @@
             </nav>
         </div>
     </footer>
+
+    <script src="/main.js"></script>
+    <script type="module" src="/scene.js"></script>
 </body>
 </html>
