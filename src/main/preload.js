@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('desktop', {
     onPopup: cb => ipcRenderer.on('popup:show', (_e, target) => cb(target)),
     popupReady: () => ipcRenderer.send('popup:ready'),
     closePopup: () => ipcRenderer.send('popup:close'),
+    onLayoutEditing: cb => ipcRenderer.on('layout:editing', (_e, editing) => cb(editing)),
     onDesktopClick: cb => ipcRenderer.on('desktop:click', (_e, pt) => cb(pt)),
     onDesktopHover: cb => ipcRenderer.on('desktop:hover', (_e, pt) => cb(pt)),
 

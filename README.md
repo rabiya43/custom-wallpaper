@@ -45,7 +45,9 @@ Only that one thing pops up over your desktop, not the whole app. When you're do
 
 A widget lights up when your mouse is over it. Your desktop keeps working as usual: clicking an icon only selects the icon, dragging still selects icons, right-click still shows the Windows menu, and nothing happens when a window is in front of the widget.
 
-To move widgets, change the picture and everything else, use **Customize wallpaper**.
+**Double-click** any widget to edit it right on the desktop: drag it to move it, drag its corner to resize it, **Original size** puts its size back, and **×** hides it. Press **Done** or **Esc** when you're finished; **Reset all** brings everything back to where it started.
+
+To change the picture and everything else, use **Customize wallpaper**.
 
 ## Choosing a wallpaper
 
@@ -59,7 +61,7 @@ In **Customize wallpaper**, use the **Theme & Wallpaper** panel:
 
 The colors of the clock and widgets change to match your picture automatically.
 
-To move or resize a widget, **double-click** it, drag it where you want, and resize it from the corner. Press **Esc** when you're done. **Reset layout** puts everything back.
+To move or resize a widget, **double-click** it, drag it where you want, and resize it from the corner. **Original size** undoes a resize, and **×** hides the widget. Press **Esc** when you're done. **Reset layout** puts everything back.
 
 ## Alarms
 

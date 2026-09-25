@@ -37,11 +37,18 @@
         <button type="button" id="editor-done-btn" class="editor-btn editor-btn-primary">Done</button>
     </div>
 
+    <!-- Desktop app: editing widgets right on the desktop (popup mode) -->
+    <div class="layout-bar" role="toolbar" aria-label="Edit widgets">
+        <span class="layout-bar-title"><i class="fa-solid fa-up-down-left-right"></i> Drag to move, drag a corner to resize</span>
+        <button type="button" id="layout-reset-btn" class="editor-btn"><i class="fa-solid fa-rotate-left"></i> Reset all</button>
+        <button type="button" id="layout-done-btn" class="editor-btn editor-btn-primary">Done</button>
+    </div>
+
     <div class="dashboard-container">
 
         <!-- System Widget (Alarm & Battery) -->
         <div class="widget drag-widget" data-id="system" style="top: 50px; left: 115px; width: 150px; height: 90px; border-radius: 18px;">
-            <span class="close-btn">&times;</span>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="widget-row">
                 <div class="small-widget interactive-btn" id="alarm-widget" title="Click to set alarm, right-click to turn off">
                     <i class="fa-solid fa-bell"></i>
@@ -57,7 +64,7 @@
 
         <!-- Integrated Weather & Humidity Widget -->
         <div class="widget drag-widget weather-widget" data-id="weather" style="top: 160px; left: 115px; width: 150px; height: 160px; border-radius: 18px;" id="weather-container">
-            <span class="close-btn">&times;</span>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="weather-header" style="align-items: flex-start;">
                 <div class="weather-temp" id="weather-temp" style="font-size: 2.5rem; line-height: 1;">--&deg;</div>
                 <div class="weather-emoji" id="weather-emoji" style="font-size: 2rem;">⛅</div>
@@ -71,7 +78,7 @@
 
         <!-- Calendar Widget -->
         <div class="widget drag-widget calendar-widget" data-id="calendar" style="top: 340px; left: 115px; width: 170px; height: 170px; border-radius: 18px;">
-            <span class="close-btn">&times;</span>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="calendar-header" id="calendar-month" style="font-size: 0.85rem; font-weight: 700;">SEP</div>
             <div class="calendar-grid-header" style="font-size: 0.7rem;">
                 <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
@@ -81,14 +88,14 @@
 
         <!-- Upcoming events (desktop app, from connected calendars) -->
         <div class="widget drag-widget agenda-widget" data-id="agenda" style="top: 250px; right: 50px; width: 290px; height: 240px; border-radius: 18px;">
-            <span class="close-btn">&times;</span>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="agenda-header"><i class="fa-regular fa-calendar"></i> Upcoming</div>
             <div id="agenda-list" class="agenda-list"></div>
         </div>
 
         <!-- Reminders / Todo Widget -->
         <div class="widget drag-widget todo-widget" data-id="todo" style="top: 530px; left: 115px; width: 170px; height: 210px; border-radius: 18px;">
-            <span class="close-btn">&times;</span>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             <div id="todo-list-container"></div>
             <div class="add-todo-container" style="position: absolute; bottom: 15px; left: 15px; right: 15px; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 6px 12px;">
                 <input type="text" id="todo-input" placeholder="Type a reminder..." style="font-size: 0.8rem; text-align: left;">
@@ -97,13 +104,13 @@
 
         <!-- Date Widget -->
         <div class="drag-widget date-container" data-id="date" style="top: 50px; right: 50px; width: 450px; text-align: right;">
-            <span class="close-btn">&times;</span>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="date-display" id="date-display" style="font-size: 3rem;">Fri, September 11</div>
         </div>
 
         <!-- Time Widget -->
         <div class="drag-widget time-container" data-id="time" style="top: 105px; right: 50px; width: 450px; text-align: right;">
-            <span class="close-btn">&times;</span>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="time-display" style="justify-content: flex-end; align-items: flex-end;">
                 <span id="time-display" style="font-size: 4.5rem;">6:46</span>
                 <span id="ampm-display" style="font-size: 1.5rem; margin-bottom: 12px; margin-left: 5px;">PM</span>
@@ -112,7 +119,7 @@
 
         <!-- Aesthetic Theme & Wallpaper Control Panel -->
         <div class="theme-panel drag-widget" data-id="panel" style="bottom: 40px; right: 40px; width: 380px;">
-            <span class="close-btn">&times;</span>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             
             <div class="panel-header">
                 <i class="fa-solid fa-palette"></i>
