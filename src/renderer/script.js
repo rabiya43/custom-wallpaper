@@ -1,5 +1,5 @@
 // The desktop app serves this page over app:// and opens it in one of two modes:
-//   wallpaper  behind the desktop icons, display only
+//   wallpaper  behind the desktop icons; clicks on empty desktop reach the widgets
 //   editor     on top of everything, for customizing
 // Opened directly in a browser the page is fully interactive, but search needs the app.
 const pageParams = new URLSearchParams(location.search);
@@ -1339,6 +1339,7 @@ function renderAgenda() {
         title.textContent = ev.title;
         title.title = `${ev.title} (${ev.calendar})`;
         item.append(t, title);
+        Object.assign(item.dataset, { eventId: ev.id || '', calendarId: ev.calendarId || '', date: ev.date });
         if (MODE === 'editor') {
             item.classList.add('is-clickable');
             item.tabIndex = 0;
@@ -1369,8 +1370,9 @@ async function refreshCalendarEvents(force = false) {
 }
 
 renderCalendar();
+let firstCalendarLoad = Promise.resolve();
 if (IS_APP) {
-    refreshCalendarEvents();
+    firstCalendarLoad = refreshCalendarEvents();
     setInterval(refreshCalendarEvents, 5 * 60 * 1000);
     if (window.desktop) window.desktop.onCalendarsChanged(() => refreshCalendarEvents());
 } else {
@@ -1478,7 +1480,25 @@ if (IS_APP && window.desktop) {
         });
         document.getElementById('editor-alarms-btn').addEventListener('click', () => openPanel('alarms'));
         document.getElementById('editor-calendars-btn').addEventListener('click', () => openPanel('calendars'));
-        window.desktop.onOpenPanel(openPanel);
+        window.desktop.onOpenPanel(showEditorTarget);
+    }
+}
+
+/** What the editor shows when opened from the tray or a widget clicked on the desktop. */
+async function showEditorTarget(target) {
+    if (target === 'todo') {
+        document.querySelectorAll(PANELS).forEach(m => { m.hidden = true; });
+        todoInput.focus();
+    } else if (typeof target === 'string') {
+        openPanel(target);
+    } else if (target?.day) {
+        openDay(target.day);
+    } else if (target?.event) {
+        await firstCalendarLoad;
+        const { id, calendarId, date } = target.event;
+        const ev = calendarEvents.find(e => e.id === id && e.calendarId === calendarId);
+        if (ev?.editable) openEventEditor({ event: ev });
+        else openDay(date);
     }
 }
 
@@ -2019,4 +2039,63 @@ if (MODE === 'editor' && window.desktop) {
     document.getElementById('editor-done-btn').addEventListener('click', () => window.desktop.closeEditor());
     document.getElementById('editor-web-btn').addEventListener('click', () =>
         window.desktop.openWebSearch(wpInput.value.trim(), 'google'));
+}
+
+// --- Clicks on the desktop (wallpaper mode) ---
+// The app passes on clicks that land on empty desktop, not on an icon or a window (see
+// src/main/desktop-input.js), so the widgets work right on the wallpaper. Anything that needs
+// typing opens the editor at that spot.
+function desktopAction(x, y) {
+    const el = document.elementFromPoint(x, y);
+    const widget = el?.closest('.drag-widget');
+    if (!widget) return null;
+    const open = target => () => window.desktop.openEditorAt(target);
+
+    const todo = el.closest('.todo-item');
+    if (todo) return { el: todo, run: () => todo.querySelector('input[type="checkbox"]').click() };
+    const day = el.closest('#calendar-grid span:not(:empty)');
+    if (day) {
+        const now = new Date();
+        return { el: day, run: open({ day: localDay(new Date(now.getFullYear(), now.getMonth(), Number(day.textContent))) }) };
+    }
+    const item = el.closest('.agenda-item');
+    if (item) {
+        const { eventId, calendarId, date } = item.dataset;
+        return { el: item, run: open(eventId && calendarId ? { event: { id: eventId, calendarId, date } } : { day: date }) };
+    }
+    const alarm = el.closest('#alarm-widget');
+    if (alarm) return { el: alarm, run: open('alarms') };
+    const battery = el.closest('#battery-widget');
+    if (battery) return { el: battery, run: () => window.desktop.openWindows('battery') };
+
+    switch (widget.dataset.id) {
+        case 'weather': return { el: widget, run: () => window.desktop.openWindows('weather') };
+        case 'calendar':
+        case 'agenda': return { el: widget, run: open('calendars') };
+        case 'todo': return { el: widget, run: open('todo') };
+        default: return null;  // time and date
+    }
+}
+
+if (MODE === 'wallpaper' && window.desktop?.onDesktopClick) {
+    let hovered = null;
+    window.desktop.onDesktopHover((pt) => {
+        const el = (pt && desktopAction(pt.x, pt.y)?.el) || null;
+        if (el === hovered) return;
+        hovered?.classList.remove('desktop-hover');
+        el?.classList.add('desktop-hover');
+        hovered = el;
+    });
+
+    let lastClick = 0;
+    window.desktop.onDesktopClick((pt) => {
+        // A double-click on the desktop counts once
+        if (!pt || Date.now() - lastClick < 450) return;
+        const action = desktopAction(pt.x, pt.y);
+        if (!action) return;
+        lastClick = Date.now();
+        action.el.classList.add('desktop-pressed');
+        setTimeout(() => action.el.classList.remove('desktop-pressed'), 180);
+        action.run();
+    });
 }

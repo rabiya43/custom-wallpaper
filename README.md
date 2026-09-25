@@ -19,10 +19,29 @@ When the app starts, your wallpaper becomes the dashboard and a small icon appea
 - **Customize wallpaper**: change the picture, move widgets, set alarms and connect your calendar. You can also double-click the tray icon.
 - **Alarms** and **Calendars**: jump straight to those.
 - **Pause live wallpaper**: go back to your normal Windows wallpaper for a while.
+- **Clickable widgets on the desktop**: turn desktop clicks on the widgets on or off (see below).
 - **Start with Windows**: open the app automatically when you sign in.
 - **Quit**: close the app and bring back your normal wallpaper.
 
 Press **Done** at the top of the screen when you've finished customizing.
+
+## Clicking widgets on your desktop
+
+The widgets work right on your desktop. Click an empty part of the desktop over a widget:
+
+| Click | What happens |
+|---|---|
+| Weather | Opens the Windows Weather app |
+| Battery | Opens Windows' Power & battery settings |
+| Alarm bell | Opens your alarms |
+| A date on the calendar | Shows that day's events, where you can add one |
+| An event in **Upcoming** | Opens the event so you can change it |
+| A reminder | Ticks it off (click again to untick) |
+| The reminders box | Opens it so you can type a new reminder |
+
+A widget lights up when your mouse is over it. Your desktop keeps working as usual: clicking an icon only selects the icon, dragging still selects icons, right-click still shows the Windows menu, and nothing happens when a window is in front of the widget.
+
+To move widgets, change the picture and everything else, use **Customize wallpaper**.
 
 ## Choosing a wallpaper
 
@@ -67,8 +86,8 @@ Everything you change shows up in Google Calendar on your phone and other device
 
 ## Weather and battery
 
-- **Weather** uses your location to show the current temperature and conditions. For your exact area, turn on **Location** in Windows (Settings → Privacy & security → Location, including *Let desktop apps access your location*); otherwise the app estimates your city from your internet connection. While customizing, click the weather to open the Windows Weather app, or the pin to open the Location setting.
-- **Battery** shows your charge, a lightning bolt while charging, and the time left when you hover over it. While customizing, click it to open Windows' Power & battery settings.
+- **Weather** uses your location to show the current temperature and conditions. For your exact area, turn on **Location** in Windows (Settings → Privacy & security → Location, including *Let desktop apps access your location*); otherwise the app estimates your city from your internet connection. Click the weather to open the Windows Weather app. While customizing, the pin next to it opens the Location setting.
+- **Battery** shows your charge, a lightning bolt while charging, and the time left when you hover over it while customizing. Click it to open Windows' Power & battery settings.
 
 ## Updates
 
@@ -90,6 +109,8 @@ The app updates itself. It checks for a new version when it starts and every few
 **Google says "Google hasn't verified this app".** That's expected while the app is being reviewed by Google. Click **Continue**.
 
 **The app asks me to sign in to Google again.** While the app is in testing, Google ends sign-ins after 7 days. Sign in again from the Calendars panel.
+
+**Clicking a widget on my desktop does nothing.** Check that **Clickable widgets on the desktop** is ticked in the tray menu, that no window is in front of it, and that you're clicking empty desktop rather than an icon. If an icon sits on top of the widget, click beside it or move the icon.
 
 **My alarm didn't ring.** The app has to be running and the computer awake. Check the tray icon is there, and turn on **Start with Windows** so it's always running.
 

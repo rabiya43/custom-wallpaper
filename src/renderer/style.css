@@ -1602,3 +1602,23 @@ body.mode-editor .calendar-grid span:not(:empty) { cursor: pointer; }
 .reminder-row { align-items: flex-end; }
 .reminder-row.reminder-off .check-field { opacity: 0.45; }
 .check-field i { opacity: 0.8; margin-right: 2px; }
+
+/* Wallpaper mode: what a click on the desktop would open */
+body.mode-wallpaper .drag-widget.desktop-hover,
+body.mode-wallpaper .small-widget.desktop-hover {
+    outline: 2px solid rgba(255, 255, 255, 0.35);
+    outline-offset: 2px;
+}
+body.mode-wallpaper .agenda-item.desktop-hover,
+body.mode-wallpaper .todo-item.desktop-hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+body.mode-wallpaper .calendar-grid span.desktop-hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+body.mode-wallpaper .desktop-pressed {
+    transform: scale(0.96);
+    transition: transform 0.1s ease;
+}

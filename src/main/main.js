@@ -1,7 +1,7 @@
 // Live Wallpaper Dashboard: Electron main process.
 //
 // Windows:
-//   wallpaper  the dashboard rendered behind the desktop icons (click-through)
+//   wallpaper  the dashboard rendered behind the desktop icons (clicks on empty desktop reach its widgets)
 //   editor     the same dashboard as a normal window on top, for customizing
 //   web        a small browser for searching any site, with "Set as wallpaper" on right-click
 const path = require('path');
@@ -9,6 +9,7 @@ const { app, BrowserWindow, WebContentsView, Menu, Tray, ipcMain, screen, dialog
 const api = require('./api');
 const config = require('./config');
 const desktopHost = require('./desktop-host');
+const desktopInput = require('./desktop-input');
 const alarms = require('./alarms');
 const calendars = require('./calendars');
 const google = require('./google');
@@ -106,6 +107,7 @@ function createWallpaper() {
         const ok = desktopHost.attach(wallpaperWin, rect);
         attachedProgman = desktopHost.currentProgman();
         wallpaperWin.showInactive();
+        startDesktopClicks();
         if (!ok) {
             notify('Could not place the wallpaper behind your icons',
                 'Your version of Windows may not support it. The dashboard is still available from the tray icon.');
@@ -121,11 +123,33 @@ function createWallpaper() {
 
 function destroyWallpaper() {
     if (!wallpaperWin) return;
+    desktopInput.stop();
     const win = wallpaperWin;
     wallpaperWin = null;
     win.removeAllListeners('closed');
     win.destroy();
     desktopHost.restoreSystemWallpaper();
+}
+
+/** Screen point (physical pixels) to a point on the wallpaper page, or null if it's off the wallpaper. */
+function toPage(pt) {
+    const p = screen.screenToDipPoint(pt);
+    const b = targetDisplay().bounds;
+    const x = p.x - b.x, y = p.y - b.y;
+    return x >= 0 && y >= 0 && x < b.width && y < b.height ? { x, y } : null;
+}
+
+/** Clicks on empty desktop reach the wallpaper's widgets (see desktop-input.js). */
+function startDesktopClicks() {
+    desktopInput.stop();
+    if (!wallpaperWin || !config.get('desktopClicks')) return;
+    const send = (channel, pt) => {
+        if (wallpaperWin && !wallpaperWin.isDestroyed()) wallpaperWin.webContents.send(channel, pt && toPage(pt));
+    };
+    desktopInput.start(wallpaperWin, {
+        onClick: pt => send('desktop:click', pt),
+        onHover: pt => send('desktop:hover', pt),
+    });
 }
 
 let repositionTimer = null;
@@ -152,8 +176,8 @@ function startWatchdog() {
 
 function openEditor() {
     if (editorWin) {
-        editorWin.show();
-        editorWin.focus();
+        if (editorWin.isMinimized()) editorWin.restore();
+        bringToFront(editorWin);
         return;
     }
     // The editor fills the screen above the taskbar, so the taskbar stays usable
@@ -174,13 +198,24 @@ function openEditor() {
     editorWin.loadURL(layoutQuery('editor'));
     editorWin.once('ready-to-show', () => {
         editorWin.setBounds(area);
-        editorWin.show();
+        bringToFront(editorWin);
     });
     editorWin.on('closed', () => {
         editorWin = null;
         if (webWin) webWin.close();
         if (wallpaperWin) wallpaperWin.reload();  // pick up everything that changed
     });
+}
+
+/**
+ * Shows a window in front. Windows doesn't let a background app take the foreground (the editor is
+ * often opened from the tray or a desktop click, when Explorer has it), so briefly pin it on top.
+ */
+function bringToFront(win) {
+    win.setAlwaysOnTop(true);
+    win.show();
+    win.focus();
+    win.setAlwaysOnTop(false);
 }
 
 // ------------------------------------------------------------------ web search window
@@ -295,6 +330,10 @@ function buildTrayMenu() {
             },
         },
         {
+            label: 'Clickable widgets on the desktop', type: 'checkbox', checked: !!config.get('desktopClicks'),
+            click: item => { config.set('desktopClicks', item.checked); startDesktopClicks(); },
+        },
+        {
             label: 'Start with Windows', type: 'checkbox', checked: login,
             click: item => { app.setLoginItemSettings({ openAtLogin: item.checked }); },
         },
@@ -342,7 +381,7 @@ function createTray() {
     updateTrayTooltip();
 }
 
-/** Opens the editor with the alarms or calendars panel showing. */
+/** Opens the editor with a panel showing: 'alarms', 'calendars', 'todo', { day } or { event }. */
 function openEditorPanel(panel) {
     openEditor();
     const send = () => editorWin.webContents.send('editor:panel', panel);
@@ -419,6 +458,17 @@ ipcMain.on('alarm:action', (event, { id, action }) => {
 });
 
 ipcMain.on('editor:minimize', () => editorWin?.minimize());
+
+// A widget clicked on the desktop that needs the editor, e.g. to show a day or edit an event
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+ipcMain.on('editor:open-at', (_e, target) => {
+    if (['alarms', 'calendars', 'todo'].includes(target)) return openEditorPanel(target);
+    if (DATE_RE.test(target?.day)) return openEditorPanel({ day: target.day });
+    const ev = target?.event;
+    if (ev && typeof ev.id === 'string' && typeof ev.calendarId === 'string' && DATE_RE.test(ev.date)) {
+        openEditorPanel({ event: { id: ev.id, calendarId: ev.calendarId, date: ev.date } });
+    }
+});
 
 // Windows apps and settings pages the dashboard's widgets can open (a fixed list, nothing else)
 const WINDOWS_LINKS = {
@@ -555,6 +605,7 @@ if (process.env.LWD_TEST_PROFILE) {
     global.lwdTest = {
         setWallpaperFromUrl, openWebSearch, openEditor, openEditorPanel, ring, fetchImage: api.fetchImage,
         alarms, calendars, ringing, config, google, when, updater, trayMenu: () => buildTrayMenu().items.map(i => i.label),
+        desktopInput, toPage, startDesktopClicks,
         windows: () => ({ wallpaperWin, editorWin, webWin, webView }),
     };
 }
