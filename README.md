@@ -25,7 +25,7 @@ When the app starts, your wallpaper becomes the dashboard and a small icon appea
 - **Start with Windows**: open the app automatically when you sign in.
 - **Quit**: close the app and bring back your normal wallpaper.
 
-Press **Done** at the top of the screen when you've finished customizing.
+While customizing, everything is in the **Customize** panel at the bottom of the screen: wallpapers, **Alarms**, **Calendars**, and **Done** when you've finished.
 
 ## Clicking widgets on your desktop
 
@@ -53,10 +53,10 @@ To change the picture and everything else, use **Customize wallpaper**.
 
 ## Choosing a wallpaper
 
-In **Customize wallpaper**, use the **Theme & Wallpaper** panel:
+In **Customize wallpaper**, use the **Customize** panel:
 
 - **Search**: type a character, movie, show or place (for example *Elsa Frozen* or *Studio Ghibli*) and click a picture you like. Use **Load more** for more choices.
-- **Search the whole web**: opens Google, Bing or DuckDuckGo Images. Open any picture, right-click it and choose **Set as wallpaper**.
+- **Search the whole web** (the globe button next to **Find**): opens Google, Bing or DuckDuckGo Images. Open any picture, right-click it and choose **Set as wallpaper**.
 - **Built-in wallpapers**: six ready-made designs that look sharp on any screen.
 - **Upload**: use a picture from your computer, or drag one onto the screen.
 - **Fill screen or Centered**: choose whether the picture fills the whole screen or sits in the middle at its natural shape.
@@ -67,7 +67,7 @@ To move or resize a widget, **double-click** it, drag it where you want, and res
 
 ## Alarms
 
-Open **Alarms** (tray menu, the bell on your dashboard, or the Alarms button while customizing) and press **Add alarm**.
+Open **Alarms** (tray menu, the bell on your desktop, or the **Alarms** button in the Customize panel) and press **Add alarm**.
 
 - **Type when it should ring**, the way you'd say it: *tomorrow 7am*, *fri 6:30pm*, *in 20 min*, *25/12 8pm*, *every weekday 7:30*, *mondays 8pm*. The app shows how it understood you and fills in the details.
 - Or set the **time**, **date** and **repeat days** yourself, and add a **label** like *Class* or *Gym*.

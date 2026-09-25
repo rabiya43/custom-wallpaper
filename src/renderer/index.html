@@ -29,16 +29,6 @@
         </div>
     </div>
 
-    <!-- Desktop app: shown while customizing -->
-    <div class="editor-bar" role="toolbar" aria-label="Customize wallpaper">
-        <span class="editor-bar-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Customize your wallpaper</span>
-        <span class="editor-bar-hint">Double-click a widget to move or resize it</span>
-        <button type="button" id="editor-alarms-btn" class="editor-btn"><i class="fa-solid fa-bell"></i> Alarms</button>
-        <button type="button" id="editor-calendars-btn" class="editor-btn"><i class="fa-regular fa-calendar"></i> Calendars</button>
-        <button type="button" id="editor-web-btn" class="editor-btn"><i class="fa-solid fa-globe"></i> Search the web</button>
-        <button type="button" id="editor-done-btn" class="editor-btn editor-btn-primary">Done</button>
-    </div>
-
     <!-- Desktop app: editing widgets right on the desktop (popup mode) -->
     <div class="layout-bar" role="toolbar" aria-label="Edit widgets">
         <span class="layout-bar-title"><i class="fa-solid fa-up-down-left-right"></i> Drag to move, drag a corner to resize</span>
@@ -120,12 +110,12 @@
         </div>
 
         <!-- Aesthetic Theme & Wallpaper Control Panel -->
-        <div class="theme-panel drag-widget" data-id="panel" style="bottom: 40px; right: 40px; width: 380px;">
-            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
-            
+        <!-- Everything for customizing, in one panel (the desktop app shows it in the editor) -->
+        <div class="theme-panel drag-widget" data-id="panel" style="bottom: 40px; left: calc(50% - 190px); width: 380px;">
             <div class="panel-header">
-                <i class="fa-solid fa-palette"></i>
-                <span>THEME & WALLPAPER</span>
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Customize</span>
+                <button type="button" id="editor-done-btn" class="editor-btn editor-btn-primary panel-done">Done</button>
             </div>
 
             <!-- Wallpaper search -->
@@ -133,6 +123,7 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="search" id="wp-search-input" placeholder="Try &quot;Elsa Frozen&quot;" autocomplete="off" maxlength="80" aria-label="Search for a wallpaper">
                 <button type="submit" id="wp-search-btn">Find</button>
+                <button type="button" id="editor-web-btn" class="wp-web-icon" title="Search the whole web (Google, Bing or DuckDuckGo)" aria-label="Search the whole web"><i class="fa-solid fa-globe"></i></button>
             </form>
 
             <!-- Built-in wallpapers (drawn by the app, so they look sharp at any resolution) -->
@@ -157,8 +148,14 @@
                 </button>
             </div>
 
+            <!-- Alarms and calendars -->
+            <div class="panel-quick">
+                <button type="button" id="editor-alarms-btn" class="editor-btn"><i class="fa-solid fa-bell"></i> Alarms</button>
+                <button type="button" id="editor-calendars-btn" class="editor-btn"><i class="fa-regular fa-calendar"></i> Calendars</button>
+            </div>
+
             <div class="panel-footer">
-                <span class="drop-hint">Drag &amp; drop an image anywhere. Double-click a widget to move or resize it.</span>
+                <span class="drop-hint">Double-click a widget to move or resize it. You can also drop a picture anywhere.</span>
                 <button class="panel-btn icon-btn" id="reset-layout-btn" title="Restore default widget layout"><i class="fa-solid fa-rotate-left"></i><span>Reset layout</span></button>
             </div>
         </div>
