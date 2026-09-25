@@ -43,7 +43,7 @@ The widgets work right on your desktop. Click an empty part of the desktop over 
 
 Only that one thing pops up over your desktop, not the whole app. When you're done, press **Esc**, click the **x**, or click anywhere else, and you're back on your desktop with the change already showing.
 
-A widget lights up when your mouse is over it. Your desktop keeps working as usual: clicking an icon only selects the icon, dragging still selects icons, right-click still shows the Windows menu, and nothing happens when a window is in front of the widget.
+A widget lights up when your mouse is over it. A click takes a split second to act, because the app waits to see whether it's a double-click (see below). Your desktop keeps working as usual: clicking an icon only selects the icon, dragging still selects icons, right-click still shows the Windows menu, and nothing happens when a window is in front of the widget.
 
 **Double-click** any widget to edit it right on the desktop: drag it to move it, drag its corner to resize it, **Original size** puts its size back, and **×** hides it. Press **Done** or **Esc** when you're finished; **Reset all** brings everything back to where it started.
 
