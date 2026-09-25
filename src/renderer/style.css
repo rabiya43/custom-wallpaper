@@ -542,7 +542,7 @@ body:not(.mode-wallpaper) #todo-list-container { margin-bottom: 38px; }
 /* Aesthetic Theme & Wallpaper Control Panel */
 .theme-panel {
     background: var(--widget-bg);
-    padding: 16px 18px;
+    padding: 14px 16px;
     border-radius: 22px;
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -550,7 +550,7 @@ body:not(.mode-wallpaper) #todo-list-container { margin-bottom: 38px; }
     box-shadow: 0 14px 38px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.12);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     user-select: none;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
     resize: none;
@@ -729,6 +729,13 @@ body:not(.mode-wallpaper) #todo-list-container { margin-bottom: 38px; }
 }
 
 /* Theme panel footer */
+.panel-header .panel-done { margin-left: auto; padding: 6px 18px; letter-spacing: 0; text-transform: none; font-size: 0.8rem; }
+.panel-quick { display: flex; gap: 8px; }
+.panel-quick .editor-btn { flex: 1; justify-content: center; padding: 7px 12px; }
+/* Done, Alarms and Calendars belong to the desktop app's editor */
+body:not(.mode-editor) .panel-done,
+body:not(.mode-editor) .panel-quick,
+body:not(.mode-editor) .wp-web-icon { display: none; }
 .panel-footer {
     display: flex;
     align-items: center;
@@ -826,6 +833,8 @@ input:focus-visible {
     transition: filter 0.2s ease, transform 0.1s ease;
 }
 .wp-search button:hover { filter: brightness(1.12); }
+.wp-search .wp-web-icon { background: rgba(255, 255, 255, 0.1); color: #fff; padding: 7px 11px; }
+.wp-search .wp-web-icon:hover { background: rgba(255, 255, 255, 0.18); filter: none; }
 .wp-search button:active { transform: scale(0.96); }
 .colors-hint {
     flex: 1;
@@ -1102,32 +1111,7 @@ body.mode-wallpaper .toast {
 }
 body.mode-wallpaper .drag-widget { cursor: default; }
 
-/* Editor toolbar */
-.editor-bar { display: none; }
-body.mode-editor .editor-bar {
-    position: fixed;
-    top: 14px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 5000;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 7px 8px 7px 18px;
-    border-radius: 999px;
-    background: rgba(20, 22, 30, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    color: #fff;
-    font-family: var(--base-font);
-    font-size: 0.82rem;
-    white-space: nowrap;
-}
-.editor-bar-title { font-weight: 700; }
-.editor-bar-title i { color: var(--accent-color); margin-right: 4px; }
-.editor-bar-hint { color: rgba(255, 255, 255, 0.55); }
+/* Buttons in the Customize panel and the widget-editing bar */
 .editor-btn {
     display: inline-flex;
     align-items: center;
@@ -1434,7 +1418,7 @@ body.mode-browser .agenda-unused { display: none !important; }
 }
 .builtin-tile {
     position: relative;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 16 / 9;
     border-radius: 10px;
     border: 2px solid transparent;
     background-size: cover;

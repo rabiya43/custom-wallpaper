@@ -127,7 +127,8 @@ const MIN_WIDGET_HEIGHT = 120;
 function restoreLayout() {
     document.querySelectorAll('.drag-widget[data-id]').forEach(widget => {
         const saved = layoutState[widget.dataset.id];
-        if (saved?.hidden) { widget.style.display = 'none'; return; }
+        // The Customize panel holds Done, so it can't stay hidden (older versions let you hide it)
+        if (saved?.hidden && widget.dataset.id !== 'panel') { widget.style.display = 'none'; return; }
         if (saved) {
             LAYOUT_PROPS.forEach(prop => {
                 if (saved[prop]) widget.style[prop] = saved[prop];
