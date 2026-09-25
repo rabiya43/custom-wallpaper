@@ -171,6 +171,50 @@ body {
 }
 .wc-btn:hover { background: rgba(255, 255, 255, 0.14); }
 .wc-close:hover { background: #c42b1c; }
+
+/* Date and time formats */
+.format-menu {
+    position: fixed;
+    z-index: 100002;
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+    padding: 6px;
+    border-radius: 12px;
+    background: rgba(24, 27, 36, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+    font-family: var(--base-font);
+}
+.format-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #fff;
+    font: inherit;
+    font-size: 0.9rem;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.format-menu-title {
+    padding: 8px 12px 4px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.format-menu-title:not(:first-child) { margin-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px; }
+.format-menu button span { font-size: 1rem; }
+.format-menu button:hover, .format-menu button:focus-visible { background: rgba(255, 255, 255, 0.1); outline: none; }
+.format-menu button i { width: 14px; color: var(--accent-color); visibility: hidden; }
+.format-menu button[aria-checked="true"] i { visibility: visible; }
+#ampm-display[hidden] { display: none; }
 .wc-btn:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 1px; }
 
 /* Micro-Interactions */

@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DynaPuff:wght@500;600;700&display=swap" rel="stylesheet">
     <link id="dynamic-font" href="https://fonts.googleapis.com/css2?family=Chewy&display=swap" rel="stylesheet">
+    <!-- Fonts people can pick for the date and time -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@600;700&family=Orbitron:wght@600;700&family=Pacifico&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Full-Screen Character Wallpaper Layer (behind everything) -->
@@ -104,13 +106,13 @@
 
         <!-- Date Widget -->
         <div class="drag-widget date-container" data-id="date" style="top: 50px; right: 50px; width: 450px; text-align: right;">
-            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-format" title="Format" aria-label="Format" aria-haspopup="menu"><i class="fa-solid fa-sliders"></i></button><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="date-display" id="date-display" style="font-size: 3rem;">Fri, September 11</div>
         </div>
 
         <!-- Time Widget -->
         <div class="drag-widget time-container" data-id="time" style="top: 105px; right: 50px; width: 450px; text-align: right;">
-            <div class="widget-controls"><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
+            <div class="widget-controls"><button type="button" class="wc-btn wc-format" title="Format" aria-label="Format" aria-haspopup="menu"><i class="fa-solid fa-sliders"></i></button><button type="button" class="wc-btn wc-restore" title="Original size" aria-label="Original size"><i class="fa-regular fa-window-restore"></i></button><button type="button" class="wc-btn wc-close" title="Hide" aria-label="Hide"><i class="fa-solid fa-xmark"></i></button></div>
             <div class="time-display" style="justify-content: flex-end; align-items: flex-end;">
                 <span id="time-display" style="font-size: 4.5rem;">6:46</span>
                 <span id="ampm-display" style="font-size: 1.5rem; margin-bottom: 12px; margin-left: 5px;">PM</span>
