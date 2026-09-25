@@ -28,7 +28,7 @@ document.addEventListener('dblclick', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-    if (!e.target.closest('.drag-widget') && !e.target.closest('.widget-controls')) {
+    if (!e.target.closest('.drag-widget') && !e.target.closest('.widget-controls') && !e.target.closest('.format-menu')) {
         document.querySelectorAll('.drag-widget').forEach(w => w.classList.remove('edit-mode'));
     }
 });
@@ -873,22 +873,162 @@ initDashboardTheme();
 
 // --- 12-Hour Format Time & Basic Functionality ---
 
+// Clock formats, chosen from the Format button while editing the date or time widget
+const CLOCK_KEY = 'dashboard-clock';
+const TIME_FORMATS = {
+    h12: { seconds: false, h24: false },
+    h12s: { seconds: true, h24: false },
+    h24: { seconds: false, h24: true },
+    h24s: { seconds: true, h24: true },
+};
+const DATE_FORMATS = {
+    short: d => d.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }),
+    long: d => `${d.toLocaleDateString('en-US', { weekday: 'long' })}, ${d.getDate()} ${d.toLocaleDateString('en-US', { month: 'long' })}`,
+    medium: d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    numeric: d => d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' }),  // Windows' own order
+    weekday: d => d.toLocaleDateString('en-US', { weekday: 'long' }),
+};
+const CLOCK_FONTS = {
+    playful: { label: 'Playful', family: "'Chewy', cursive" },
+    clean: { label: 'Clean', family: "'Inter', sans-serif" },
+    elegant: { label: 'Elegant', family: "'Playfair Display', serif" },
+    modern: { label: 'Modern', family: "'Space Grotesk', sans-serif" },
+    digital: { label: 'Digital', family: "'Orbitron', sans-serif" },
+    script: { label: 'Script', family: "'Pacifico', cursive" },
+};
+function clockFormats() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(CLOCK_KEY)) || {}; } catch (e) { /* default */ }
+    const font = k => (CLOCK_FONTS[saved[k]] ? saved[k] : 'playful');
+    return {
+        time: TIME_FORMATS[saved.time] ? saved.time : 'h12',
+        date: DATE_FORMATS[saved.date] ? saved.date : 'short',
+        timeFont: font('timeFont'),
+        dateFont: font('dateFont'),
+    };
+}
+function timeParts(d, key) {
+    const f = TIME_FORMATS[key];
+    let h = d.getHours();
+    const suffix = f.h24 ? '' : (h >= 12 ? 'PM' : 'AM');
+    if (!f.h24) h = h % 12 || 12;
+    const text = `${f.h24 ? String(h).padStart(2, '0') : h}:${String(d.getMinutes()).padStart(2, '0')}${f.seconds ? ':' + String(d.getSeconds()).padStart(2, '0') : ''}`;
+    return { text, suffix };
+}
+
+/**
+ * Wide fonts and seconds can make the date or time wider than its widget: shrink the text to fit
+ * (never above the size it was designed at).
+ */
+const CLOCK_TEXT = [
+    { el: () => document.getElementById('date-display'), box: () => document.querySelector('[data-id="date"]'), size: ['date-display'] },
+    { el: () => document.querySelector('.time-display'), box: () => document.querySelector('[data-id="time"]'), size: ['time-display', 'ampm-display'] },
+];
+const clockBaseSizes = {};
+function fitClock() {
+    for (const c of CLOCK_TEXT) {
+        const el = c.el(), box = c.box();
+        if (!el || !box || !box.clientWidth) continue;
+        // Start from the designed sizes (from index.html), then scale down if it doesn't fit
+        c.size.forEach(id => {
+            const t = document.getElementById(id);
+            clockBaseSizes[id] ??= parseFloat(t.style.fontSize) || 3;
+            t.style.fontSize = `${clockBaseSizes[id]}rem`;
+        });
+        const room = box.clientWidth - 8;
+        // Natural width of the text (right-aligned overflow isn't counted in scrollWidth)
+        const prevWidth = el.style.width, prevDisplay = el.style.display;
+        el.style.width = 'max-content';
+        if (getComputedStyle(el).display === 'block') el.style.display = 'inline-block';
+        const needed = el.getBoundingClientRect().width;
+        el.style.width = prevWidth;
+        el.style.display = prevDisplay;
+        if (needed > room) {
+            const ratio = Math.max(0.35, room / needed);
+            c.size.forEach(id => { document.getElementById(id).style.fontSize = `${(clockBaseSizes[id] * ratio).toFixed(3)}rem`; });
+        }
+    }
+}
+if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(() => fitClock());
+    ['date', 'time'].forEach(id => { const w = document.querySelector(`[data-id="${id}"]`); if (w) ro.observe(w); });
+}
+document.fonts?.addEventListener?.('loadingdone', () => fitClock());
+
+let clockTimer = null;
 function updateTimeAndDate() {
+    clearTimeout(clockTimer);
     const now = new Date();
-    
-    let hours = now.getHours();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12; 
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    
-    document.getElementById('time-display').innerText = `${hours}:${minutes}`;
-    document.getElementById('ampm-display').innerText = ampm;
-    
-    document.getElementById('date-display').innerText = now.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' });
-    setTimeout(updateTimeAndDate, (60 - now.getSeconds()) * 1000 - now.getMilliseconds());
+    const fmt = clockFormats();
+    const { text, suffix } = timeParts(now, fmt.time);
+    document.getElementById('time-display').innerText = text;
+    const ampm = document.getElementById('ampm-display');
+    ampm.innerText = suffix;
+    ampm.hidden = !suffix;
+    document.getElementById('date-display').innerText = DATE_FORMATS[fmt.date](now);
+    document.getElementById('date-display').style.fontFamily = CLOCK_FONTS[fmt.dateFont].family;
+    document.querySelector('.time-display').style.fontFamily = CLOCK_FONTS[fmt.timeFont].family;
+    fitClock();
+    // Next second or next minute, whichever the format needs
+    const wait = TIME_FORMATS[fmt.time].seconds ? 1000 - now.getMilliseconds() : (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    clockTimer = setTimeout(updateTimeAndDate, wait);
 }
 updateTimeAndDate();
+window.addEventListener('storage', (e) => { if (e.key === CLOCK_KEY) updateTimeAndDate(); });
+
+// The Format menu
+let formatMenu = null;
+function closeFormatMenu() {
+    formatMenu?.remove();
+    formatMenu = null;
+}
+function openFormatMenu(btn) {
+    closeFormatMenu();
+    const kind = btn.closest('.drag-widget').dataset.id;  // 'date' or 'time'
+    const fmt = clockFormats();
+    const sample = new Date();
+    const formats = kind === 'time'
+        ? Object.keys(TIME_FORMATS).map(k => { const p = timeParts(sample, k); return { key: k, label: `${p.text}${p.suffix ? ' ' + p.suffix : ''}` }; })
+        : Object.keys(DATE_FORMATS).map(k => ({ key: k, label: DATE_FORMATS[k](sample) }));
+    const fonts = Object.entries(CLOCK_FONTS).map(([k, f]) => ({ key: k, label: f.label, family: f.family }));
+    formatMenu = document.createElement('div');
+    formatMenu.className = 'format-menu';
+    formatMenu.setAttribute('role', 'menu');
+    const section = (title, setting, items) => {
+        const h = document.createElement('div');
+        h.className = 'format-menu-title';
+        h.textContent = title;
+        formatMenu.appendChild(h);
+        for (const opt of items) {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.setAttribute('role', 'menuitemradio');
+            item.setAttribute('aria-checked', String(fmt[setting] === opt.key));
+            item.innerHTML = '<i class="fa-solid fa-check"></i><span></span>';
+            item.querySelector('span').textContent = opt.label;
+            if (opt.family) item.querySelector('span').style.fontFamily = opt.family;  // each font shown in itself
+            item.addEventListener('click', () => {
+                localStorage.setItem(CLOCK_KEY, JSON.stringify({ ...fmt, [setting]: opt.key }));
+                updateTimeAndDate();
+                closeFormatMenu();
+            });
+            formatMenu.appendChild(item);
+        }
+    };
+    section('Format', kind, formats);
+    section('Font', kind === 'time' ? 'timeFont' : 'dateFont', fonts);
+    document.body.appendChild(formatMenu);
+    const r = btn.getBoundingClientRect();
+    formatMenu.style.top = `${r.bottom + 6}px`;
+    formatMenu.style.left = `${Math.max(8, Math.min(r.right - formatMenu.offsetWidth, innerWidth - formatMenu.offsetWidth - 8))}px`;
+    formatMenu.querySelector('[aria-checked="true"]')?.focus();
+}
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.wc-format');
+    if (btn) { if (formatMenu) closeFormatMenu(); else openFormatMenu(btn); return; }
+    if (formatMenu && !e.target.closest('.format-menu')) closeFormatMenu();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && formatMenu) { e.stopImmediatePropagation(); closeFormatMenu(); } }, true);
 
 const pad2 = n => String(n).padStart(2, '0');
 const localDay = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -2225,6 +2365,6 @@ if (MODE === 'popup' && window.desktop) {
     document.addEventListener('mousedown', (e) => {
         if (document.body.classList.contains('popup-todo') && !e.target.closest('[data-id="todo"]')) closeTodo();
         // Clicking empty space while editing: finish, like clicking away on the desktop
-        if (inLayout() && !e.target.closest('.drag-widget') && !e.target.closest('.layout-bar')) finishLayout();
+        if (inLayout() && !e.target.closest('.drag-widget') && !e.target.closest('.layout-bar') && !e.target.closest('.format-menu')) finishLayout();
     });
 }

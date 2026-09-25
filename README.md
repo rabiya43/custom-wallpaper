@@ -47,6 +47,8 @@ A widget lights up when your mouse is over it. Your desktop keeps working as usu
 
 **Double-click** any widget to edit it right on the desktop: drag it to move it, drag its corner to resize it, **Original size** puts its size back, and **×** hides it. Press **Done** or **Esc** when you're finished; **Reset all** brings everything back to where it started.
 
+The **date** and **time** also have a **Format** button while you edit them: pick 12- or 24-hour time (with or without seconds), how the date is written, and a font for each: Playful, Clean, Elegant, Modern, Digital or Script.
+
 To change the picture and everything else, use **Customize wallpaper**.
 
 ## Choosing a wallpaper
