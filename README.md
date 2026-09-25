@@ -97,6 +97,7 @@ The app updates itself. It checks for a new version when it starts and every few
 
 ## Privacy
 
+- Full details: [Privacy Policy](PRIVACY.md).
 - Everything you set up (wallpaper, alarms, reminders, layout) is stored on your computer.
 - Google Calendar: the app talks directly to Google. Your sign-in is stored encrypted by Windows, and **Sign out** in the Calendars panel removes the app's access.
 - Weather uses [Open-Meteo](https://open-meteo.com); your approximate location comes from Windows or from your internet connection.
