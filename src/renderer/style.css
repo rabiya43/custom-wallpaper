@@ -1622,3 +1622,15 @@ body.mode-wallpaper .desktop-pressed {
     transform: scale(0.96);
     transition: transform 0.1s ease;
 }
+
+/* Popup mode: only the panel shows, over the desktop */
+body.mode-popup { background: transparent !important; }
+body.mode-popup.popup-todo { background: rgba(0, 0, 0, 0.15) !important; }
+body.mode-popup #character-wallpaper,
+body.mode-popup #drag-drop-overlay,
+body.mode-popup:not(.popup-todo) .drag-widget,
+body.mode-popup .drag-widget:not(.todo-widget) {
+    display: none !important;
+}
+body.mode-popup .wp-modal { background: rgba(10, 12, 18, 0.35); }
+body.mode-popup.popup-todo .todo-widget { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45); }

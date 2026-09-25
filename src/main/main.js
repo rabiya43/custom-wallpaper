@@ -3,6 +3,7 @@
 // Windows:
 //   wallpaper  the dashboard rendered behind the desktop icons (clicks on empty desktop reach its widgets)
 //   editor     the same dashboard as a normal window on top, for customizing
+//   popup      one panel (alarms, a day, an event, reminders) over the desktop, opened by clicking a widget
 //   web        a small browser for searching any site, with "Set as wallpaper" on right-click
 const path = require('path');
 const { app, BrowserWindow, WebContentsView, Menu, Tray, ipcMain, screen, dialog, nativeImage, Notification, shell } = require('electron');
@@ -30,6 +31,8 @@ const ENGINES = {
 let tray = null;
 let wallpaperWin = null;
 let editorWin = null;
+let popupWin = null;
+let popupBusy = 0;  // a file dialog or Google sign-in is open from the popup, so it stays open
 let webWin = null;
 let webView = null;
 let quitting = false;
@@ -63,13 +66,13 @@ function targetDisplay() {
 
 /**
  * Where the dashboard's widgets may go, as insets in CSS pixels. The wallpaper covers the whole
- * screen, so it keeps widgets out from under the taskbar; the editor window already stops at the
- * taskbar (so the taskbar stays usable), so it needs none. Either way widgets land in the same place.
+ * screen, so it keeps widgets out from under the taskbar; the editor and popup windows already stop
+ * at the taskbar (so the taskbar stays usable), so they need none. Either way widgets land in the same place.
  */
 function layoutQuery(mode) {
     const d = targetDisplay();
     const b = d.bounds, w = d.workArea;
-    const insets = mode === 'editor' ? { t: 0, l: 0, r: 0, b: 0 } : {
+    const insets = mode !== 'wallpaper' ? { t: 0, l: 0, r: 0, b: 0 } : {
         t: w.y - b.y, l: w.x - b.x,
         r: (b.x + b.width) - (w.x + w.width), b: (b.y + b.height) - (w.y + w.height),
     };
@@ -203,17 +206,75 @@ function openEditor() {
     editorWin.on('closed', () => {
         editorWin = null;
         if (webWin) webWin.close();
-        if (wallpaperWin) wallpaperWin.reload();  // pick up everything that changed
+        // Pick up everything that changed
+        if (wallpaperWin) wallpaperWin.reload();
+        if (popupWin) popupWin.reload();
     });
 }
 
+// ------------------------------------------------------------------ popup window
+
 /**
- * Shows a window in front. Windows doesn't let a background app take the foreground (the editor is
- * often opened from the tray or a desktop click, when Explorer has it), so briefly pin it on top.
+ * Shows one panel over the desktop, e.g. the alarms after clicking the bell on the wallpaper.
+ * The window covers the work area like the editor (so the reminders box lands exactly on top of
+ * the wallpaper's), but only the panel is visible. It's kept after the first use so it opens quickly.
+ */
+function openPopup(target) {
+    if (editorWin) return openEditorPanel(target);  // while customizing, use the editor
+    if (!popupWin) createPopup();
+    const send = () => popupWin.webContents.send('popup:show', target);  // the page answers popup:ready
+    if (popupWin.webContents.isLoading()) popupWin.webContents.once('did-finish-load', send);
+    else send();
+}
+
+function createPopup() {
+    popupWin = new BrowserWindow({
+        ...targetDisplay().workArea,
+        show: false,
+        frame: false,
+        thickFrame: false,
+        transparent: true,
+        backgroundColor: '#00000000',
+        resizable: false,
+        movable: false,
+        minimizable: false,
+        maximizable: false,
+        skipTaskbar: true,
+        hasShadow: false,
+        title: 'Live Wallpaper Dashboard',
+        icon: ICON,
+        webPreferences: { preload: path.join(__dirname, 'preload.js'), backgroundThrottling: false },
+    });
+    popupWin.loadURL(layoutQuery('popup'));
+    // Clicking anywhere else puts it away, unless it's waiting on a file dialog or Google sign-in
+    popupWin.on('blur', () => setTimeout(() => {
+        if (popupWin && !popupBusy && !popupWin.isFocused()) popupWin.hide();
+    }, 150));
+    popupWin.on('closed', () => { popupWin = null; });
+}
+
+/** Keeps the popup open while fn runs, if the request came from it (e.g. a file dialog). */
+async function whileBusy(event, fn) {
+    const fromPopup = popupWin && event.sender === popupWin.webContents;
+    if (fromPopup) popupBusy++;
+    try {
+        return await fn();
+    } finally {
+        if (fromPopup) {
+            popupBusy--;
+            if (popupWin?.isVisible()) bringToFront(popupWin);
+        }
+    }
+}
+
+/**
+ * Shows a window in front with the keyboard. Windows doesn't normally let a background app take
+ * the foreground, and these windows are opened from the tray or a desktop click, when Explorer has it.
  */
 function bringToFront(win) {
     win.setAlwaysOnTop(true);
     win.show();
+    desktopHost.takeForeground(win);
     win.focus();
     win.setAlwaysOnTop(false);
 }
@@ -338,8 +399,8 @@ function buildTrayMenu() {
             click: item => { app.setLoginItemSettings({ openAtLogin: item.checked }); },
         },
         { type: 'separator' },
-        { label: 'Alarms...', click: () => openEditorPanel('alarms') },
-        { label: 'Calendars...', click: () => openEditorPanel('calendars') },
+        { label: 'Alarms...', click: () => openPopup('alarms') },
+        { label: 'Calendars...', click: () => openPopup('calendars') },
         { type: 'separator' },
         ...updateMenuItems(),
         { label: 'Quit', click: () => app.quit() },
@@ -391,7 +452,7 @@ function openEditorPanel(panel) {
 
 /** Tells the dashboard windows that alarms or calendars changed, so their widgets update. */
 function broadcast(channel) {
-    for (const win of [wallpaperWin, editorWin]) {
+    for (const win of [wallpaperWin, editorWin, popupWin]) {
         if (win && !win.isDestroyed()) win.webContents.send(channel);
     }
 }
@@ -438,11 +499,11 @@ ipcMain.on('web:back', () => webView?.webContents.navigationHistory.goBack());
 ipcMain.handle('alarms:get', () => ({ alarms: alarms.list(), next: alarms.next(), snoozeMinutes: alarms.SNOOZE_MINUTES }));
 ipcMain.handle('alarms:save', (_e, list) => alarms.save(list));
 ipcMain.handle('alarms:pick-sound', async (event) => {
-    const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
+    const r = await whileBusy(event, () => dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
         title: 'Choose an alarm sound',
         properties: ['openFile'],
         filters: [{ name: 'Sounds', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'] }],
-    });
+    }));
     if (r.canceled || !r.filePaths[0]) return null;
     try {
         return alarms.importSound(r.filePaths[0]);
@@ -459,16 +520,22 @@ ipcMain.on('alarm:action', (event, { id, action }) => {
 
 ipcMain.on('editor:minimize', () => editorWin?.minimize());
 
-// A widget clicked on the desktop that needs the editor, e.g. to show a day or edit an event
+// A widget clicked on the desktop that needs a panel, e.g. to show a day or edit an event
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-ipcMain.on('editor:open-at', (_e, target) => {
-    if (['alarms', 'calendars', 'todo'].includes(target)) return openEditorPanel(target);
-    if (DATE_RE.test(target?.day)) return openEditorPanel({ day: target.day });
+ipcMain.on('popup:open', (_e, target) => {
+    if (['alarms', 'calendars', 'todo'].includes(target)) return openPopup(target);
+    if (DATE_RE.test(target?.day)) return openPopup({ day: target.day });
     const ev = target?.event;
     if (ev && typeof ev.id === 'string' && typeof ev.calendarId === 'string' && DATE_RE.test(ev.date)) {
-        openEditorPanel({ event: { id: ev.id, calendarId: ev.calendarId, date: ev.date } });
+        openPopup({ event: { id: ev.id, calendarId: ev.calendarId, date: ev.date } });
     }
 });
+ipcMain.on('popup:ready', () => {
+    if (!popupWin) return;
+    popupWin.setBounds(targetDisplay().workArea);
+    bringToFront(popupWin);
+});
+ipcMain.on('popup:close', () => popupWin?.hide());
 
 // Windows apps and settings pages the dashboard's widgets can open (a fixed list, nothing else)
 const WINDOWS_LINKS = {
@@ -497,18 +564,18 @@ ipcMain.handle('when:parse', (_e, { text, mode }) => when.parse(text, { mode }))
 
 // Google Calendar
 ipcMain.handle('google:status', () => ({ configured: google.isConfigured(), account: google.account() }));
-ipcMain.handle('google:sign-in', async () => {
+ipcMain.handle('google:sign-in', (event) => whileBusy(event, async () => {
+    const win = BrowserWindow.fromWebContents(event.sender);
     try {
         const account = await google.signIn();
-        editorWin?.show();
-        editorWin?.focus();
+        if (win && !win.isDestroyed()) bringToFront(win);
         broadcast('calendars:changed');
         return { account };
     } catch (e) {
-        editorWin?.focus();
+        win?.focus();
         return { error: e.message };
     }
-});
+}));
 ipcMain.handle('google:cancel-sign-in', () => google.cancelSignIn());
 ipcMain.handle('google:sign-out', async () => {
     await google.signOut();
@@ -552,9 +619,9 @@ ipcMain.handle('calendars:remove', (_e, id) => {
     broadcast('calendars:changed');
 });
 ipcMain.handle('calendars:choose-folder', async (event) => {
-    const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
+    const r = await whileBusy(event, () => dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), {
         properties: ['openDirectory'], title: 'Choose a folder with .ics calendar files',
-    });
+    }));
     if (r.canceled || !r.filePaths[0]) return null;
     config.set('calendarDir', r.filePaths[0]);
     broadcast('calendars:changed');
@@ -605,8 +672,8 @@ if (process.env.LWD_TEST_PROFILE) {
     global.lwdTest = {
         setWallpaperFromUrl, openWebSearch, openEditor, openEditorPanel, ring, fetchImage: api.fetchImage,
         alarms, calendars, ringing, config, google, when, updater, trayMenu: () => buildTrayMenu().items.map(i => i.label),
-        desktopInput, toPage, startDesktopClicks,
-        windows: () => ({ wallpaperWin, editorWin, webWin, webView }),
+        desktopInput, toPage, startDesktopClicks, openPopup, desktopHost,
+        windows: () => ({ wallpaperWin, editorWin, webWin, webView, popupWin }),
     };
 }
 

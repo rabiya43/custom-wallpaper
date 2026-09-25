@@ -17,7 +17,7 @@ Works on Windows 10 and 11 (64-bit). You only download it once: new versions ins
 When the app starts, your wallpaper becomes the dashboard and a small icon appears in the **system tray** (bottom-right corner, near the clock; click the **^** arrow if you don't see it). Right-click that icon for everything:
 
 - **Customize wallpaper**: change the picture, move widgets, set alarms and connect your calendar. You can also double-click the tray icon.
-- **Alarms** and **Calendars**: jump straight to those.
+- **Alarms** and **Calendars**: open those right over your desktop.
 - **Pause live wallpaper**: go back to your normal Windows wallpaper for a while.
 - **Clickable widgets on the desktop**: turn desktop clicks on the widgets on or off (see below).
 - **Start with Windows**: open the app automatically when you sign in.
@@ -31,13 +31,15 @@ The widgets work right on your desktop. Click an empty part of the desktop over 
 
 | Click | What happens |
 |---|---|
+| A reminder | Ticks it off (click again to untick) |
+| The reminders box | Type a new reminder right there and press **Enter** |
+| Alarm bell | Your alarms pop up, to add or change one |
+| A date on the calendar | That day's events pop up, where you can add one |
+| An event in **Upcoming** | The event pops up so you can change it |
 | Weather | Opens the Windows Weather app |
 | Battery | Opens Windows' Power & battery settings |
-| Alarm bell | Opens your alarms |
-| A date on the calendar | Shows that day's events, where you can add one |
-| An event in **Upcoming** | Opens the event so you can change it |
-| A reminder | Ticks it off (click again to untick) |
-| The reminders box | Opens it so you can type a new reminder |
+
+Only that one thing pops up over your desktop, not the whole app. When you're done, press **Esc**, click the **x**, or click anywhere else, and you're back on your desktop with the change already showing.
 
 A widget lights up when your mouse is over it. Your desktop keeps working as usual: clicking an icon only selects the icon, dragging still selects icons, right-click still shows the Windows menu, and nothing happens when a window is in front of the widget.
 

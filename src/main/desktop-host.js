@@ -22,6 +22,12 @@ const SetLayeredWindowAttributes = user32.func('bool __stdcall SetLayeredWindowA
 const GetSystemMetrics = user32.func('int __stdcall GetSystemMetrics(int index)');
 const SystemParametersInfoW_get = user32.func('bool __stdcall SystemParametersInfoW(uint32 action, uint32 param, _Out_ uint16 *buf, uint32 winIni)');
 const SystemParametersInfoW_set = user32.func('bool __stdcall SystemParametersInfoW(uint32 action, uint32 param, str16 value, uint32 winIni)');
+const GetForegroundWindow = user32.func('intptr __stdcall GetForegroundWindow()');
+const GetWindowThreadProcessId = user32.func('uint32 __stdcall GetWindowThreadProcessId(intptr hwnd, void *pid)');
+const AttachThreadInput = user32.func('bool __stdcall AttachThreadInput(uint32 thread, uint32 to, bool attach)');
+const BringWindowToTop = user32.func('bool __stdcall BringWindowToTop(intptr hwnd)');
+const SetForegroundWindow = user32.func('bool __stdcall SetForegroundWindow(intptr hwnd)');
+const GetCurrentThreadId = koffi.load('kernel32.dll').func('uint32 __stdcall GetCurrentThreadId()');
 
 const SMTO_NORMAL = 0x0;
 const GWL_STYLE = -16;
@@ -119,4 +125,23 @@ function restoreSystemWallpaper() {
     SystemParametersInfoW_set(SPI_SETDESKWALLPAPER, 0, path, 0);
 }
 
-module.exports = { attach, currentProgman, restoreSystemWallpaper };
+/**
+ * Gives a window the foreground and keyboard focus even though another app (usually Explorer,
+ * after a click on the desktop) has it. Windows allows this while attached to that app's input.
+ */
+function takeForeground(win) {
+    const hwnd = hwndOf(win);
+    const fg = GetForegroundWindow();
+    if (fg === hwnd) return true;
+    const me = GetCurrentThreadId();
+    const other = fg ? GetWindowThreadProcessId(fg, null) : 0;
+    const attach = other && other !== me && AttachThreadInput(me, other, true);
+    BringWindowToTop(hwnd);
+    const ok = SetForegroundWindow(hwnd);
+    if (attach) AttachThreadInput(me, other, false);
+    return ok;
+}
+
+const foreground = () => GetForegroundWindow();
+
+module.exports = { attach, currentProgman, restoreSystemWallpaper, takeForeground, foreground, hwndOf };
