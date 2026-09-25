@@ -57,7 +57,7 @@ Run `npm run dist`, then attach **all three** files from `dist/` to a new GitHub
 - `Live-Wallpaper-Dashboard-Setup-<version>.exe.blockmap`
 - `latest.yml`
 
-The updater reads `latest.yml` to find new versions, and the blockmap lets it download only what changed. The installer's name has no spaces so it still matches `latest.yml` after uploading (GitHub turns spaces into dots).
+The updater reads `latest.yml` to find new versions, and the blockmap lets it download only what changed. Once the new version has downloaded, the app shows an update card (`src/renderer/update.html`) with the release description: write it as a short bullet list of what's new, because those bullets are what people see. The installer's name has no spaces so it still matches `latest.yml` after uploading (GitHub turns spaces into dots).
 
 ## Website
 

@@ -1636,4 +1636,9 @@ body.mode-popup .drag-widget:not(.todo-widget) {
     display: none !important;
 }
 body.mode-popup .wp-modal { background: rgba(10, 12, 18, 0.35); }
-body.mode-popup.popup-todo .todo-widget { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45); }
+/* The popup is a separate window: a see-through box would show the wallpaper's copy of the
+   reminders underneath (wrapped differently), so this one is solid, in the same tint */
+body.mode-popup.popup-todo .todo-widget {
+    background: linear-gradient(var(--widget-bg), var(--widget-bg)), var(--bg-color-1, #2D5A46);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}

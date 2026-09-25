@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Update ready</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+            background: transparent;
+            overflow: hidden;
+            user-select: none;
+            padding: 12px;
+        }
+        .card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 18px 18px 16px;
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(34, 44, 40, 0.98), rgba(18, 24, 21, 0.98));
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+            animation: rise 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+        .head { display: flex; align-items: center; gap: 12px; }
+        .icon {
+            flex: none;
+            display: grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: rgba(195, 236, 122, 0.16);
+            color: #c3ec7a;
+            font-size: 1.05rem;
+        }
+        h1 { font-size: 1rem; font-weight: 700; }
+        .sub { font-size: 0.82rem; color: rgba(255, 255, 255, 0.65); }
+        .close {
+            margin-left: auto;
+            align-self: flex-start;
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+        }
+        .close:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+        .notes {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            font-size: 0.84rem;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.8);
+            padding-left: 50px;
+        }
+        .notes ul { padding-left: 16px; }
+        .notes li { margin: 2px 0; }
+        .actions { display: flex; justify-content: flex-end; gap: 8px; }
+        button.btn {
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 999px;
+            padding: 9px 18px;
+            cursor: pointer;
+            transition: filter 0.15s ease, transform 0.1s ease;
+        }
+        button.btn:hover { filter: brightness(1.12); }
+        button.btn:active { transform: scale(0.97); }
+        button:focus-visible { outline: 3px solid #c3ec7a; outline-offset: 2px; }
+        .later { background: rgba(255, 255, 255, 0.1); color: #fff; }
+        .now { background: #c3ec7a; color: #13210f; }
+        .now:disabled { opacity: 0.7; cursor: default; }
+    </style>
+</head>
+<body>
+    <div class="card" role="alertdialog" aria-labelledby="title" aria-describedby="sub">
+        <div class="head">
+            <div class="icon" aria-hidden="true"><i class="fa-solid fa-arrows-rotate"></i></div>
+            <div>
+                <h1 id="title">Update ready</h1>
+                <p class="sub" id="sub"></p>
+            </div>
+            <button type="button" class="close" id="close" aria-label="Later"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="notes" id="notes"></div>
+        <div class="actions">
+            <button type="button" class="btn later" id="later">Later</button>
+            <button type="button" class="btn now" id="now">Update now</button>
+        </div>
+    </div>
+    <script src="update.js"></script>
+</body>
+</html>
