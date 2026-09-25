@@ -141,35 +141,37 @@ body {
     cursor: grabbing;
 }
 
-/* Close Button (X) */
-.close-btn {
+/* A widget's buttons while editing it, like a window's: original size and hide */
+.widget-controls {
     position: absolute;
-    top: 5px;
-    right: 8px;
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: var(--accent-color);
-    cursor: pointer;
+    top: 6px;
+    right: 6px;
+    z-index: 20;
     display: none;
-    z-index: 10;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 10px;
+    background: rgba(24, 27, 36, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
-.close-btn:hover {
-    color: #FFF;
-    transform: scale(1.1);
+.drag-widget.edit-mode .widget-controls { display: flex; }
+.wc-btn {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 26px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: #fff;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
 }
-.drag-widget.edit-mode .close-btn {
-    display: block;
-    background: #dc3545;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    text-align: center;
-    line-height: 28px;
-    color: white;
-    top: -5px;
-    right: -5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-}
+.wc-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.wc-close:hover { background: #c42b1c; }
+.wc-btn:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 1px; }
 
 /* Micro-Interactions */
 .interactive-btn {
@@ -472,10 +474,7 @@ body:not(.mode-wallpaper) #todo-list-container { margin-bottom: 38px; }
     transition: color 0.4s ease, text-shadow 0.4s ease;
 }
 
-.date-container .close-btn, .time-container .close-btn {
-    color: var(--primary-text);
-    right: 0;
-}
+.date-container .widget-controls, .time-container .widget-controls { right: 0; }
 
 .date-display {
     font-size: max(2rem, 10cqw);
@@ -1050,7 +1049,7 @@ body.mode-editor .dashboard-container {
 /* Wallpaper mode: display only */
 body.mode-wallpaper .theme-panel,
 body.mode-wallpaper .add-todo-container,
-body.mode-wallpaper .close-btn,
+body.mode-wallpaper .widget-controls,
 body.mode-wallpaper .todo-item .delete-btn,
 body.mode-wallpaper #drag-drop-overlay,
 body.mode-wallpaper .wp-modal,
@@ -1631,10 +1630,35 @@ body.mode-popup { background: transparent !important; }
 body.mode-popup.popup-todo { background: rgba(0, 0, 0, 0.15) !important; }
 body.mode-popup #character-wallpaper,
 body.mode-popup #drag-drop-overlay,
-body.mode-popup:not(.popup-todo) .drag-widget,
-body.mode-popup .drag-widget:not(.todo-widget) {
+body.mode-popup:not(.popup-todo):not(.popup-layout) .drag-widget,
+body.mode-popup:not(.popup-layout) .drag-widget:not(.todo-widget),
+body.mode-popup .theme-panel {
     display: none !important;
 }
+body.mode-popup.popup-layout { background: rgba(0, 0, 0, 0.12) !important; }
+
+/* Editing widgets on the desktop */
+.layout-bar { display: none; }
+body.mode-popup.popup-layout .layout-bar {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100001;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px 8px 18px;
+    border-radius: 999px;
+    background: rgba(20, 22, 30, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-family: var(--base-font);
+    white-space: nowrap;
+}
+.layout-bar-title { font-size: 0.88rem; font-weight: 600; margin-right: 6px; }
+.layout-bar-title i { color: var(--accent-color); margin-right: 6px; }
 body.mode-popup .wp-modal { background: rgba(10, 12, 18, 0.35); }
 /* The popup is a separate window: a see-through box would show the wallpaper's copy of the
    reminders underneath (wrapped differently), so this one is solid, in the same tint */

@@ -19,7 +19,7 @@ if (IS_APP) {
 
 // --- Draggable, Resizable, & Edit Mode ---
 document.addEventListener('dblclick', (e) => {
-    if (MODE === 'wallpaper' || MODE === 'popup') return;
+    if (MODE === 'wallpaper' || (MODE === 'popup' && !document.body.classList.contains('popup-layout'))) return;
     const widget = e.target.closest('.drag-widget');
     if (widget) {
         document.querySelectorAll('.drag-widget').forEach(w => w.classList.remove('edit-mode'));
@@ -28,7 +28,7 @@ document.addEventListener('dblclick', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-    if (!e.target.closest('.drag-widget') && !e.target.closest('.close-btn')) {
+    if (!e.target.closest('.drag-widget') && !e.target.closest('.widget-controls')) {
         document.querySelectorAll('.drag-widget').forEach(w => w.classList.remove('edit-mode'));
     }
 });
@@ -40,7 +40,7 @@ function makeDraggable(elmnt) {
         // ONLY allow dragging if in edit mode
         if (!elmnt.classList.contains('edit-mode')) return;
         
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('.interactive-btn') || e.target.closest('.todo-item') || e.target.closest('.close-btn')) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('.interactive-btn') || e.target.closest('.todo-item') || e.target.closest('.widget-controls')) {
             return;
         }
         
@@ -105,6 +105,12 @@ document.querySelectorAll('.drag-widget').forEach(makeDraggable);
 
 // --- Layout persistence (position, size, hidden widgets) ---
 const LAYOUT_KEY = 'dashboard-layout';
+const LAYOUT_PROPS = ['top', 'left', 'right', 'bottom', 'width', 'height'];
+// Where each widget starts, from index.html, for "Original size" and when the layout changes elsewhere
+const DEFAULT_LAYOUT = {};
+document.querySelectorAll('.drag-widget[data-id]').forEach(w => {
+    DEFAULT_LAYOUT[w.dataset.id] = Object.fromEntries(LAYOUT_PROPS.map(p => [p, w.style[p]]));
+});
 let layoutState = {};
 try { layoutState = JSON.parse(localStorage.getItem(LAYOUT_KEY)) || {}; } catch (e) { layoutState = {}; }
 
@@ -123,7 +129,7 @@ function restoreLayout() {
         const saved = layoutState[widget.dataset.id];
         if (saved?.hidden) { widget.style.display = 'none'; return; }
         if (saved) {
-            ['top', 'left', 'right', 'bottom', 'width', 'height'].forEach(prop => {
+            LAYOUT_PROPS.forEach(prop => {
                 if (saved[prop]) widget.style[prop] = saved[prop];
             });
         }
@@ -141,6 +147,20 @@ function restoreLayout() {
 }
 restoreLayout();
 
+/** Applies the saved layout again from scratch, e.g. after it was changed in another window. */
+function reloadLayout() {
+    try { layoutState = JSON.parse(localStorage.getItem(LAYOUT_KEY)) || {}; } catch (e) { layoutState = {}; }
+    document.querySelectorAll('.drag-widget[data-id]').forEach(w => {
+        const d = DEFAULT_LAYOUT[w.dataset.id] || {};
+        LAYOUT_PROPS.forEach(p => { w.style[p] = d[p] || ''; });
+        w.style.display = '';
+    });
+    restoreLayout();
+}
+window.addEventListener('storage', (e) => {
+    if (e.key === LAYOUT_KEY || e.key === null) reloadLayout();
+});
+
 // Save after a drag or resize finishes
 // (delayed so the edge-snap animation has settled)
 document.addEventListener('mouseup', () => {
@@ -149,15 +169,23 @@ document.addEventListener('mouseup', () => {
     }, 350);
 });
 
-// Close button hides the widget (and remembers it)
+// A widget's buttons while editing it: × hides it (and remembers), the other one puts it back
+// to its original size
 document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.close-btn');
-    if (!btn) return;
-    const widget = btn.closest('.drag-widget');
-    if (widget) {
+    const btn = e.target.closest('.wc-btn');
+    const widget = btn?.closest('.drag-widget');
+    if (!widget) return;
+    if (btn.classList.contains('wc-close')) {
         widget.style.display = 'none';
         widget.classList.remove('edit-mode');
         saveWidget(widget, true);
+    } else if (btn.classList.contains('wc-restore')) {
+        const d = DEFAULT_LAYOUT[widget.dataset.id] || {};
+        widget.style.transition = 'width 0.25s ease, height 0.25s ease';
+        widget.style.width = d.width || '';
+        widget.style.height = d.height || '';
+        saveWidget(widget);
+        setTimeout(() => { widget.style.transition = ''; }, 300);
     }
 });
 
@@ -873,7 +901,7 @@ function format12(hhmm) {
 function onSingleClick(el, fn) {
     let timer = null;
     el.addEventListener('click', (e) => {
-        if (e.detail > 1 || e.target.closest('.close-btn') || el.closest('.edit-mode')) { clearTimeout(timer); return; }
+        if (e.detail > 1 || e.target.closest('.widget-controls') || el.closest('.edit-mode')) { clearTimeout(timer); return; }
         clearTimeout(timer);
         timer = setTimeout(() => fn(e), 260);
     });
@@ -2109,16 +2137,33 @@ if (MODE === 'wallpaper' && window.desktop?.onDesktopClick) {
         hovered = el;
     });
 
-    let lastClick = 0;
+    // A double-click on a widget edits it (move, resize, hide) right on the desktop. So single
+    // clicks wait a moment to see whether a second click follows.
+    const DOUBLE_CLICK_MS = 400;
+    let pending = null;
     window.desktop.onDesktopClick((pt) => {
-        // A double-click on the desktop counts once
-        if (!pt || Date.now() - lastClick < 450) return;
+        if (!pt) return;
+        const widget = document.elementFromPoint(pt.x, pt.y)?.closest('.drag-widget[data-id]');
+        if (!widget) return;
+        if (pending && pending.widget === widget) {
+            clearTimeout(pending.timer);
+            pending = null;
+            window.desktop.openPopup({ layout: widget.dataset.id });
+            return;
+        }
+        if (pending) clearTimeout(pending.timer);
         const action = desktopAction(pt.x, pt.y);
-        if (!action) return;
-        lastClick = Date.now();
-        action.el.classList.add('desktop-pressed');
-        setTimeout(() => action.el.classList.remove('desktop-pressed'), 180);
-        action.run();
+        if (action) {
+            action.el.classList.add('desktop-pressed');
+            setTimeout(() => action.el.classList.remove('desktop-pressed'), 180);
+        }
+        pending = { widget, timer: setTimeout(() => { pending = null; action?.run(); }, DOUBLE_CLICK_MS) };
+    });
+
+    // While the widgets are being edited in the popup, it shows them; don't show them twice
+    window.desktop.onLayoutEditing((editing) => {
+        dashboard.style.visibility = editing ? 'hidden' : '';
+        if (!editing) reloadLayout();
     });
 }
 
@@ -2128,7 +2173,8 @@ if (MODE === 'wallpaper' && window.desktop?.onDesktopClick) {
 let popupOpening = false;
 
 function closePopupIfDone() {
-    if (MODE !== 'popup' || popupOpening || document.body.classList.contains('popup-todo')) return;
+    if (MODE !== 'popup' || popupOpening) return;
+    if (document.body.classList.contains('popup-todo') || document.body.classList.contains('popup-layout')) return;
     if ([...document.querySelectorAll(PANELS)].every(m => m.hidden)) window.desktop.closePopup();
 }
 
@@ -2141,7 +2187,16 @@ if (MODE === 'popup' && window.desktop) {
         // Reminders: the reminders box itself, right where it is on the desktop, ready to type in
         document.body.classList.toggle('popup-todo', target === 'todo');
         if (target === 'todo') todoInput.value = '';
-        await showEditorTarget(target);
+        // Editing widgets: all of them where they are, with the double-clicked one ready to move
+        document.body.classList.toggle('popup-layout', !!target?.layout);
+        document.querySelectorAll('.drag-widget').forEach(w => w.classList.remove('edit-mode'));
+        if (target?.layout) {
+            reloadLayout();
+            loadWeather();  // the popup doesn't keep the weather up to date otherwise
+            document.querySelector(`.drag-widget[data-id="${CSS.escape(target.layout)}"]`)?.classList.add('edit-mode');
+        } else {
+            await showEditorTarget(target);
+        }
         popupOpening = false;
         // Give it a moment to draw, so the last panel never flashes up (animation frames don't run while hidden)
         setTimeout(() => window.desktop.popupReady(), 40);
@@ -2150,10 +2205,26 @@ if (MODE === 'popup' && window.desktop) {
         document.body.classList.remove('popup-todo');
         window.desktop.closePopup();
     };
+    // Done editing widgets: save where everything is and go back to the desktop
+    const finishLayout = () => {
+        document.querySelectorAll('.drag-widget.edit-mode').forEach(w => { saveWidget(w); w.classList.remove('edit-mode'); });
+        document.body.classList.remove('popup-layout');
+        window.desktop.closePopup();
+    };
+    const inLayout = () => document.body.classList.contains('popup-layout');
+    document.getElementById('layout-done-btn').addEventListener('click', finishLayout);
+    document.getElementById('layout-reset-btn').addEventListener('click', () => {
+        localStorage.removeItem(LAYOUT_KEY);
+        reloadLayout();
+    });
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && document.body.classList.contains('popup-todo')) closeTodo();
+        if (e.key !== 'Escape') return;
+        if (document.body.classList.contains('popup-todo')) closeTodo();
+        else if (inLayout()) finishLayout();
     });
     document.addEventListener('mousedown', (e) => {
         if (document.body.classList.contains('popup-todo') && !e.target.closest('[data-id="todo"]')) closeTodo();
+        // Clicking empty space while editing: finish, like clicking away on the desktop
+        if (inLayout() && !e.target.closest('.drag-widget') && !e.target.closest('.layout-bar')) finishLayout();
     });
 }

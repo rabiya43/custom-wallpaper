@@ -17,6 +17,8 @@
     "files": [
       "src/**/*",
       "build/icon.png",
+      "build/tray.png",
+      "build/tray@2x.png",
       "package.json"
     ],
     "directories": {

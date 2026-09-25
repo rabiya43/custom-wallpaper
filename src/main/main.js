@@ -34,6 +34,7 @@ let editorWin = null;
 let popupWin = null;
 let popupBusy = 0;  // a file dialog or Google sign-in is open from the popup, so it stays open
 let updateWin = null;
+let layoutEditing = false;
 let webWin = null;
 let webView = null;
 let quitting = false;
@@ -223,6 +224,11 @@ function openEditor() {
 function openPopup(target) {
     if (editorWin) return openEditorPanel(target);  // while customizing, use the editor
     if (!popupWin) createPopup();
+    // Editing the widgets: the popup shows them, so the wallpaper hides its own copies meanwhile
+    if (target?.layout) {
+        layoutEditing = true;
+        wallpaperWin?.webContents.send('layout:editing', true);
+    }
     const send = () => popupWin.webContents.send('popup:show', target);  // the page answers popup:ready
     if (popupWin.webContents.isLoading()) popupWin.webContents.once('did-finish-load', send);
     else send();
@@ -249,9 +255,17 @@ function createPopup() {
     popupWin.loadURL(layoutQuery('popup'));
     // Clicking anywhere else puts it away, unless it's waiting on a file dialog or Google sign-in
     popupWin.on('blur', () => setTimeout(() => {
-        if (popupWin && !popupBusy && !popupWin.isFocused()) popupWin.hide();
+        if (popupWin && !popupBusy && !popupWin.isFocused()) hidePopup();
     }, 150));
     popupWin.on('closed', () => { popupWin = null; });
+}
+
+function hidePopup() {
+    if (popupWin?.isVisible()) popupWin.hide();
+    if (layoutEditing) {
+        layoutEditing = false;
+        wallpaperWin?.webContents.send('layout:editing', false);
+    }
 }
 
 /** Keeps the popup open while fn runs, if the request came from it (e.g. a file dialog). */
@@ -436,7 +450,8 @@ function updateTrayTooltip() {
 }
 
 function createTray() {
-    const img = nativeImage.createFromPath(ICON).resize({ width: 16, height: 16 });
+    // tray.png is drawn at 16 px, with tray@2x.png picked up automatically on high-DPI screens
+    const img = nativeImage.createFromPath(path.join(__dirname, '..', '..', 'build', 'tray.png'));
     tray = new Tray(img);
     tray.setContextMenu(buildTrayMenu());
     tray.on('double-click', () => openEditor());
@@ -560,10 +575,13 @@ ipcMain.on('alarm:action', (event, { id, action }) => {
 
 ipcMain.on('editor:minimize', () => editorWin?.minimize());
 
-// A widget clicked on the desktop that needs a panel, e.g. to show a day or edit an event
+// A widget clicked on the desktop that needs a panel, e.g. to show a day or edit an event;
+// double-clicking a widget edits the layout
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const WIDGET_IDS = ['system', 'weather', 'calendar', 'agenda', 'todo', 'date', 'time'];
 ipcMain.on('popup:open', (_e, target) => {
     if (['alarms', 'calendars', 'todo'].includes(target)) return openPopup(target);
+    if (WIDGET_IDS.includes(target?.layout)) return openPopup({ layout: target.layout });
     if (DATE_RE.test(target?.day)) return openPopup({ day: target.day });
     const ev = target?.event;
     if (ev && typeof ev.id === 'string' && typeof ev.calendarId === 'string' && DATE_RE.test(ev.date)) {
@@ -575,7 +593,7 @@ ipcMain.on('popup:ready', () => {
     popupWin.setBounds(targetDisplay().workArea);
     bringToFront(popupWin);
 });
-ipcMain.on('popup:close', () => popupWin?.hide());
+ipcMain.on('popup:close', () => hidePopup());
 
 // Windows apps and settings pages the dashboard's widgets can open (a fixed list, nothing else)
 const WINDOWS_LINKS = {
