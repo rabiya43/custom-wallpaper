@@ -79,6 +79,8 @@ function layoutQuery(mode) {
         r: (b.x + b.width) - (w.x + w.width), b: (b.y + b.height) - (w.y + w.height),
     };
     const q = new URLSearchParams({ mode, ...insets });
+    // Automated tests only see the first-run tour when they ask for it
+    if (process.env.LWD_TEST_PROFILE && !process.env.LWD_TEST_TOUR) q.set('notour', '1');
     return `${APP_URL}?${q}`;
 }
 
@@ -348,7 +350,7 @@ function openWebSearch(query, engine = 'google') {
     wc.on('context-menu', (_e, params) => {
         const items = [];
         if (params.mediaType === 'image' && params.srcURL) {
-            items.push({ label: 'Set as wallpaper', click: () => setWallpaperFromUrl(params.srcURL) });
+            items.push({ label: 'Set as wallpaper', click: () => setWallpaperFromUrl(params.srcURL, params.linkURL) });
             items.push({ type: 'separator' });
         }
         if (params.selectionText) items.push({ role: 'copy' });
@@ -364,15 +366,39 @@ function openWebSearch(query, engine = 'google') {
     });
 }
 
-async function setWallpaperFromUrl(src) {
+/**
+ * In image search results the picture you right-click is usually a small preview. Bing and older
+ * Google result links carry the original picture's address, so use that when it's there.
+ */
+function originalImageUrl(src, link) {
+    try {
+        const u = new URL(link || '');
+        const original = u.searchParams.get('mediaurl') || u.searchParams.get('imgurl');
+        if (original && /^https?:\/\//.test(original)) return original;
+    } catch { /* no usable link */ }
+    return src;
+}
+
+async function setWallpaperFromUrl(src, link) {
     try {
         let bytes, type;
         const m = src.match(/^data:(image\/[a-z+]+);base64,(.*)$/i);
-        if (m) {
+        const original = originalImageUrl(src, link);
+        if (original !== src) {
+            ({ buf: bytes, type } = await api.fetchImage(original).catch(() => ({})));
+        }
+        if (!bytes && m) {
             type = m[1];
             bytes = Buffer.from(m[2], 'base64');
-        } else {
+        } else if (!bytes) {
             ({ buf: bytes, type } = await api.fetchImage(src));
+        }
+        // A thumbnail would look blurry across the screen: ask for the full-size picture instead
+        const { width } = nativeImage.createFromBuffer(bytes).getSize();
+        const d = targetDisplay();
+        if (width && width < d.size.width * d.scaleFactor * 0.6) {
+            webWin?.webContents.send('web:toast', `That's a small preview (${width} pixels wide), so it would look blurry. Click the picture to open it bigger, then right-click the big one and choose "Set as wallpaper".`);
+            return;
         }
         if (!editorWin) openEditor();
         const send = () => editorWin.webContents.send('apply-image', { bytes, type });

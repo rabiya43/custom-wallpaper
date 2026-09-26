@@ -12,8 +12,9 @@
 const USER_AGENT = 'LiveWallpaperDashboard/1.0 (personal project; https://github.com/rabiya43/custom-wallpaper)';
 const TIMEOUT_MS = 8000;
 const PAGE_SIZE = 30;
-const MIN_WIDTH = 500;
-const MIN_HEIGHT = 300;
+// Smaller pictures look blurry stretched across a screen
+const MIN_WIDTH = 1000;
+const MIN_HEIGHT = 560;
 const TAG_LOOKUPS = 10;        // only the top results get character tags
 const TAG_CONCURRENCY = 4;
 const WALLHAVEN_PER_MINUTE = 40;  // Wallhaven allows 45; keep a margin
@@ -123,7 +124,7 @@ async function wallhavenTags(id) {
 
 async function searchWallhaven(query, tokens, page) {
     // First ask for wallpapers matching every word; loosen only if that's thin
-    const base = { categories: '110', purity: '100', atleast: '1280x720', sorting: 'relevance', page };
+    const base = { categories: '110', purity: '100', atleast: '1920x1080', sorting: 'relevance', page };
     const strictQ = tokens.length > 1 ? tokens.map(t => `+${t}`).join(' ') : query;
     const strict = await wallhavenGet('https://wallhaven.cc/api/v1/search', { ...base, q: strictQ }, { retry: true });
     let data = strict.data || [];

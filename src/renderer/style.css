@@ -729,7 +729,22 @@ body:not(.mode-wallpaper) #todo-list-container { margin-bottom: 38px; }
 }
 
 /* Theme panel footer */
-.panel-header .panel-done { margin-left: auto; padding: 6px 18px; letter-spacing: 0; text-transform: none; font-size: 0.8rem; }
+.panel-tour {
+    margin-left: auto;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    cursor: pointer;
+}
+.panel-tour:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+body:not(.mode-editor) .panel-tour { display: none; }
+.panel-header .panel-done { padding: 6px 18px; letter-spacing: 0; text-transform: none; font-size: 0.8rem; }
 .panel-quick { display: flex; gap: 8px; }
 .panel-quick .editor-btn { flex: 1; justify-content: center; padding: 7px 12px; }
 /* Done, Alarms and Calendars belong to the desktop app's editor */
@@ -955,6 +970,7 @@ input:focus-visible {
     object-fit: cover;
     display: block;
 }
+.wp-card.wp-lowres .wp-meta { color: #ffd166; }
 .wp-card:hover, .wp-card:focus-visible {
     transform: translateY(-3px);
     border-color: var(--accent-color);
@@ -1598,6 +1614,25 @@ body.mode-browser .agenda-unused { display: none !important; }
 .day-event.is-clickable:hover { background: rgba(255, 255, 255, 0.1); }
 .day-event-time { min-width: 128px; font-size: 0.82rem; font-weight: 600; opacity: 0.85; }
 .agenda-item.is-clickable { cursor: pointer; border-radius: 4px; }
+.agenda-check {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin-right: 2px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    background: transparent;
+    color: transparent;
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.agenda-check:hover, .agenda-check.desktop-hover { border-color: var(--accent-color); color: rgba(255, 255, 255, 0.5); }
+.agenda-item.is-done .agenda-check { background: var(--accent-color); border-color: var(--accent-color); color: #111; }
+.agenda-item.is-done .agenda-title, .agenda-item.is-done .agenda-time { text-decoration: line-through; opacity: 0.5; }
 .agenda-item.is-clickable:hover { background: rgba(255, 255, 255, 0.08); }
 body.mode-editor .calendar-grid span:not(:empty) { cursor: pointer; }
 
@@ -1634,28 +1669,36 @@ body.mode-editor .calendar-grid span:not(:empty) { cursor: pointer; }
 .check-field i { opacity: 0.8; margin-right: 2px; }
 
 /* Wallpaper mode: what a click on the desktop would open */
-body.mode-wallpaper .drag-widget.desktop-hover,
+/* Soft, Mac-like: the thing under the mouse brightens and lifts a little, no outlines */
+body.mode-wallpaper .drag-widget,
+body.mode-wallpaper .small-widget,
+body.mode-wallpaper .agenda-item,
+body.mode-wallpaper .todo-item {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+body.mode-wallpaper .drag-widget.desktop-hover {
+    transform: translateY(-2px);
+    filter: brightness(1.06);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.18);
+}
 body.mode-wallpaper .small-widget.desktop-hover {
-    outline: 2px solid rgba(255, 255, 255, 0.35);
-    outline-offset: 2px;
+    transform: translateY(-1px) scale(1.06);
+    filter: brightness(1.15) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
 }
 body.mode-wallpaper .agenda-item.desktop-hover,
 body.mode-wallpaper .todo-item.desktop-hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
 }
 body.mode-wallpaper .calendar-grid span.desktop-hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.18);
 }
-body.mode-wallpaper .desktop-pressed {
-    transform: scale(0.96);
-    transition: transform 0.1s ease;
-}
+body.mode-wallpaper .desktop-pressed { filter: brightness(0.92); }
 
 /* Popup mode: only the panel shows, over the desktop */
 body.mode-popup { background: transparent !important; }
-body.mode-popup.popup-todo { background: rgba(0, 0, 0, 0.15) !important; }
+/* Barely there, but still catches the click that puts the reminders box away */
+body.mode-popup.popup-todo { background: rgba(0, 0, 0, 0.01) !important; }
 body.mode-popup #character-wallpaper,
 body.mode-popup #drag-drop-overlay,
 body.mode-popup:not(.popup-todo):not(.popup-layout) .drag-widget,
@@ -1688,9 +1731,79 @@ body.mode-popup.popup-layout .layout-bar {
 .layout-bar-title { font-size: 0.88rem; font-weight: 600; margin-right: 6px; }
 .layout-bar-title i { color: var(--accent-color); margin-right: 6px; }
 body.mode-popup .wp-modal { background: rgba(10, 12, 18, 0.35); }
+/* The popup eases in instead of appearing all at once */
+@keyframes popup-fade { from { opacity: 0; } }
+@keyframes popup-rise { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+body.mode-popup.popup-enter .wp-modal { animation: popup-fade 0.18s ease-out; }
+body.mode-popup.popup-enter .wp-modal > * { animation: popup-rise 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+body.mode-popup.popup-enter.popup-todo .todo-widget { animation: popup-fade 0.16s ease-out; }
+body.mode-popup.popup-enter.popup-layout .dashboard-container { animation: popup-fade 0.16s ease-out; }
 /* The popup is a separate window: a see-through box would show the wallpaper's copy of the
    reminders underneath (wrapped differently), so this one is solid, in the same tint */
 body.mode-popup.popup-todo .todo-widget {
     background: linear-gradient(var(--widget-bg), var(--widget-bg)), var(--bg-color-1, #2D5A46);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* Guided tour */
+.tour { position: fixed; inset: 0; z-index: 200000; font-family: var(--base-font); }
+.tour-spot {
+    position: fixed;
+    border-radius: 16px;
+    box-shadow: 0 0 0 9999px rgba(8, 10, 16, 0.62), 0 0 0 2px rgba(255, 255, 255, 0.55), 0 0 30px rgba(255, 255, 255, 0.25);
+    transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1), top 0.35s cubic-bezier(0.16, 1, 0.3, 1), width 0.35s cubic-bezier(0.16, 1, 0.3, 1), height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+.tour-center .tour-spot { box-shadow: 0 0 0 9999px rgba(8, 10, 16, 0.62); }
+.tour-card {
+    position: fixed;
+    width: min(390px, calc(100vw - 24px));
+    padding: 20px 20px 16px;
+    border-radius: 18px;
+    background: rgba(24, 27, 36, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    color: #fff;
+    transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1), top 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: popup-rise 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tour-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+}
+.tour-close:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.tour-step { color: var(--accent-color); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.tour-card h3 { margin: 6px 0 8px; font-size: 1.1rem; }
+.tour-text { margin: 0 0 16px; color: rgba(255, 255, 255, 0.8); font-size: 0.9rem; line-height: 1.5; }
+.tour-actions { display: flex; align-items: center; gap: 8px; }
+.tour-actions button {
+    white-space: nowrap;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.tour-skip { background: transparent; color: rgba(255, 255, 255, 0.6); padding-left: 0 !important; }
+.tour-skip:hover { color: #fff; }
+.tour-back { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.tour-back:hover { background: rgba(255, 255, 255, 0.18); }
+.tour-next { background: var(--accent-color); color: #111; }
+.tour-next:hover { filter: brightness(1.08); }
+.tour-actions button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.tour-dots { display: flex; gap: 4px; margin-right: auto; margin-left: 4px; }
+.tour-dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, 0.25); }
+.tour-dots i.on { background: var(--accent-color); }
+@media (prefers-reduced-motion: reduce) {
+    .tour-spot, .tour-card { transition: none; animation: none; }
 }

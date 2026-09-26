@@ -27,6 +27,8 @@ When the app starts, your wallpaper becomes the dashboard and a small icon appea
 
 While customizing, everything is in the **Customize** panel at the bottom of the screen: wallpapers, **Alarms**, **Calendars**, and **Done** when you've finished.
 
+The first time you customize, a short **tour** shows you around. Use **Next** and **Back**, or **Skip tour** if you'd rather explore on your own. To see it again, click the **?** next to **Done**.
+
 ## Clicking widgets on your desktop
 
 The widgets work right on your desktop. Click an empty part of the desktop over a widget:
@@ -38,6 +40,7 @@ The widgets work right on your desktop. Click an empty part of the desktop over 
 | Alarm bell | Your alarms pop up, to add or change one |
 | A date on the calendar | That day's events pop up, where you can add one |
 | An event in **Upcoming** | The event pops up so you can change it |
+| The circle next to an event | Marks it as done (click again to undo) |
 | Weather | Opens the Windows Weather app |
 | Battery | Opens Windows' Power & battery settings |
 
@@ -55,8 +58,8 @@ To change the picture and everything else, use **Customize wallpaper**.
 
 In **Customize wallpaper**, use the **Customize** panel:
 
-- **Search**: type a character, movie, show or place (for example *Elsa Frozen* or *Studio Ghibli*) and click a picture you like. Use **Load more** for more choices.
-- **Search the whole web** (the globe button next to **Find**): opens Google, Bing or DuckDuckGo Images. Open any picture, right-click it and choose **Set as wallpaper**.
+- **Search**: type a character, movie, show or place (for example *Elsa Frozen* or *Studio Ghibli*) and click a picture you like. Use **Load more** for more choices. Pictures marked **May look blurry** are small for your screen.
+- **Search the whole web** (the globe button next to **Find**): opens Google, Bing or DuckDuckGo Images. **Click a picture to open it big first**, then right-click the big one and choose **Set as wallpaper**. The small previews in the results would look blurry, so the app asks for the big one.
 - **Built-in wallpapers**: six ready-made designs that look sharp on any screen.
 - **Upload**: use a picture from your computer, or drag one onto the screen.
 - **Fill screen or Centered**: choose whether the picture fills the whole screen or sits in the middle at its natural shape.
@@ -86,9 +89,12 @@ Once you're signed in:
 - Your events appear on the dashboard: dots on the calendar and an **Upcoming** list.
 - **Add an event**: click a date on the calendar, then **Add event**. Type when it happens, like *tomorrow 3-4:30pm* or *fri 10am*.
 - **Change or delete an event**: click it in **Upcoming** or in a day's list.
+- **Mark an event as done**: tick the circle next to it in **Upcoming**. Handy for assignments you've handed in. This is only remembered on your computer; it doesn't change anything in Google Calendar or Google Classroom.
 - **Get reminded by email**: choose when (for example *30 minutes before*) and tick **Email me** and/or **Notify on my phone**. Google sends the reminder, so it arrives even when your computer is off.
 
 Everything you change shows up in Google Calendar on your phone and other devices too.
+
+**School accounts:** if you sign in with a school Google account, your class assignments and class events show in **Upcoming** too. They belong to your school, so you can view them and tick them off, but not edit them.
 
 **Other calendars** (like a university timetable or Outlook) can be shown too, read-only: open **Other calendars** in the Calendars panel and paste the calendar's private iCal link. The panel explains where to find it.
 

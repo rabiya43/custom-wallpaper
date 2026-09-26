@@ -93,6 +93,10 @@ Multi-word searches first require every word; Wallhaven results are re-ranked by
 
 **Alarms** are scheduled in the main process (`alarms.js`), so they ring whenever the app runs. **Calendar**: Google via the Calendar API with PKCE sign-in and a refresh token encrypted by Windows (`google.js`); other calendars as iCal links or `.ics` files with repeats expanded (`calendars.js`). Event reminder emails are sent by Google itself. **Typed dates** use chrono-node plus some clean-up (`when.js`); ambiguous dates follow the Windows short-date setting.
 
+**Tour** (`tour.js`) runs the first time the editor opens and is remembered in `localStorage` (`dashboard-tour-done`); the ? in the Customize panel replays it. Steps whose widget is hidden are skipped. Automated test runs skip it unless `LWD_TEST_TOUR` is set.
+
+**Done events** in Upcoming are kept in `localStorage` (`dashboard-done-events`, 60 days), keyed by calendar, event and start time, so they work for read-only calendars such as Google Classroom's.
+
 **Safety.** Anything downloaded from a URL (images, calendar links) must resolve to a public address, re-checked on every redirect (`net-safety.js`). Remote web pages in the search window run sandboxed with no access to the app.
 
 ## Project layout
@@ -119,6 +123,7 @@ src/
     web.html, web.js                   toolbar of the web search window
     alarm.html, alarm.js, sounds.js    ringing window and alarm tones
     update.html, update.js             the "update ready" card
+    tour.js                            the first-run guided tour (editor only)
 build/
   icon.svg               the logo (source); icon.png is exported from it at 512 px
   tray.png, tray@2x.png  tray icon at 16 and 32 px
