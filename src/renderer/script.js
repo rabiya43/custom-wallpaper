@@ -627,10 +627,13 @@ function renderResults() {
         img.referrerPolicy = 'no-referrer';
         img.onerror = () => card.remove();
 
+        // Pictures much smaller than the screen will look blurry when they fill it
+        const lowRes = item.width < SCREEN_WIDTH * 0.8;
+        card.classList.toggle('wp-lowres', lowRes);
         const meta = document.createElement('span');
         meta.className = 'wp-meta';
         const who = item.tags && item.tags.length ? item.tags.slice(0, 3).join(', ') : '';
-        meta.textContent = who ? `${who} · ${item.width}×${item.height}` : `${item.width}×${item.height} · ${item.source}`;
+        meta.textContent = (lowRes ? 'May look blurry · ' : '') + (who ? `${who} · ${item.width}×${item.height}` : `${item.width}×${item.height} · ${item.source}`);
 
         card.append(img, meta);
         card.addEventListener('click', () => applyRemoteWallpaper(item, card));
@@ -699,6 +702,9 @@ async function runWallpaperSearch(query, page = 1) {
         wpMore.textContent = 'Load more';
     }
 }
+
+// The screen's real width in pixels, to spot pictures that would look blurry on it
+const SCREEN_WIDTH = Math.round(screen.width * (window.devicePixelRatio || 1));
 
 // Downscale huge images (8K wallpapers) so they stay smooth and fit in storage
 async function prepareImage(blob) {
@@ -787,7 +793,7 @@ async function applyWallpaperBlob(sourceBlob, fit = 'auto', { quiet = false } = 
     const ratio = bitmap.width / bitmap.height;
     setFitMode(fit === 'auto' ? (ratio >= 1.3 ? 'cover' : 'center') : fit);
     applyPalette(extractPalette(bitmap));
-    const small = bitmap.width < 1000;
+    const small = bitmap.width < SCREEN_WIDTH * 0.6;
     bitmap.close?.();
     if (quiet) return;
     showToast(small
@@ -1459,6 +1465,23 @@ function markCalendarEvents() {
     }
 }
 
+// Events marked as done in "Upcoming" (kept for 60 days, on this PC)
+const DONE_KEY = 'dashboard-done-events';
+let doneEvents = new Map();
+function loadDone() {
+    try { doneEvents = new Map(Object.entries(JSON.parse(localStorage.getItem(DONE_KEY)) || {})); } catch (e) { doneEvents = new Map(); }
+    const cutoff = Date.now() - 60 * 86400000;
+    for (const [k, t] of doneEvents) if (t < cutoff) doneEvents.delete(k);
+}
+loadDone();
+const doneKey = ev => `${ev.calendarId || ev.calendar || ''}|${ev.id || ev.title}|${ev.start}`;
+function toggleDone(key) {
+    if (doneEvents.has(key)) doneEvents.delete(key); else doneEvents.set(key, Date.now());
+    localStorage.setItem(DONE_KEY, JSON.stringify(Object.fromEntries(doneEvents)));
+    renderAgenda();
+}
+window.addEventListener('storage', (e) => { if (e.key === DONE_KEY) { loadDone(); renderAgenda(); } });
+
 // "Upcoming" widget: what's left today and the next few days
 function renderAgenda() {
     const list = document.getElementById('agenda-list');
@@ -1521,6 +1544,18 @@ function renderAgenda() {
         title.title = `${ev.title} (${ev.calendar})`;
         item.append(t, title);
         Object.assign(item.dataset, { eventId: ev.id || '', calendarId: ev.calendarId || '', date: ev.date });
+        // Tick an event off, e.g. an assignment you've handed in (remembered on this PC only)
+        const key = doneKey(ev);
+        const check = document.createElement('button');
+        check.type = 'button';
+        check.className = 'agenda-check';
+        check.dataset.doneKey = key;
+        check.setAttribute('aria-label', `Mark "${ev.title}" as done`);
+        check.title = 'Mark as done';
+        check.innerHTML = '<i class="fa-solid fa-check"></i>';
+        item.prepend(check);
+        item.classList.toggle('is-done', doneEvents.has(key));
+        if (MODE !== 'wallpaper') check.addEventListener('click', (e) => { e.stopPropagation(); toggleDone(key); });
         if (MODE === 'editor') {
             item.classList.add('is-clickable');
             item.tabIndex = 0;
@@ -2249,6 +2284,8 @@ function desktopAction(x, y) {
         const now = new Date();
         return { el: day, run: open({ day: localDay(new Date(now.getFullYear(), now.getMonth(), Number(day.textContent))) }) };
     }
+    const tick = el.closest('.agenda-check');
+    if (tick) return { el: tick, run: () => toggleDone(tick.dataset.doneKey) };
     const item = el.closest('.agenda-item');
     if (item) {
         const { eventId, calendarId, date } = item.dataset;
@@ -2339,6 +2376,9 @@ if (MODE === 'popup' && window.desktop) {
             await showEditorTarget(target);
         }
         popupOpening = false;
+        document.body.classList.remove('popup-enter');
+        void document.body.offsetWidth;  // restart the ease-in
+        document.body.classList.add('popup-enter');
         // Give it a moment to draw, so the last panel never flashes up (animation frames don't run while hidden)
         setTimeout(() => window.desktop.popupReady(), 40);
     });
