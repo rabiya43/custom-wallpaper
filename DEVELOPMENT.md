@@ -46,23 +46,16 @@ School and work accounts can still be blocked by their organization's own rules,
 
 Installed copies (1.2.0 and later) update themselves from GitHub Releases, so every release reaches users automatically.
 
-**Automatically with GitHub Actions**
+Releases are built by GitHub Actions (`.github/workflows/release.yml`) whenever a tag like `v1.2.2` appears. Don't upload installers by hand: the workflow replaces whatever is attached to the release.
 
-1. Once: add a repository secret named `GOOGLE_OAUTH_JSON` (Settings → Secrets and variables → Actions) containing the whole `google-oauth.json` file.
-2. Change `"version"` in `package.json` (for example `1.2.1`) and commit.
-3. `git tag v1.2.1` then `git push origin v1.2.1`.
+1. **Once:** add a repository secret named `GOOGLE_OAUTH_JSON` (Settings → Secrets and variables → Actions → New repository secret) and paste in the whole `src/main/google-oauth.json` file. Without it the workflow stops, because a build without it can't sign in to Google.
+2. Change `"version"` in `package.json` (for example `1.2.2`), commit, and merge into `main`.
+3. On GitHub: **Releases → Draft a new release**, choose a new tag `v1.2.2` on `main`, write the description, attach no files, and **Publish**. (Or `git tag v1.2.2` and `git push origin v1.2.2`, then add the description afterwards.)
+4. Within about five minutes the workflow checks the tag matches `package.json`, builds the installer on Windows, and attaches `Live-Wallpaper-Dashboard-Setup-<version>.exe`, its `.blockmap` and `latest.yml` to the release. Check the run under the **Actions** tab.
 
-`.github/workflows/release.yml` checks the tag matches `package.json`, builds the installer on Windows and publishes the release.
+The updater reads `latest.yml` to find new versions, and the blockmap lets it download only what changed. Once the new version has downloaded, the app shows an update card (`src/renderer/update.html`) with the release description: write it as a short bullet list of what's new, because those bullets are what people see.
 
-**By hand**
-
-Run `npm run dist`, then attach **all three** files from `dist/` to a new GitHub release tagged `v<version>`:
-
-- `Live-Wallpaper-Dashboard-Setup-<version>.exe`
-- `Live-Wallpaper-Dashboard-Setup-<version>.exe.blockmap`
-- `latest.yml`
-
-The updater reads `latest.yml` to find new versions, and the blockmap lets it download only what changed. Once the new version has downloaded, the app shows an update card (`src/renderer/update.html`) with the release description: write it as a short bullet list of what's new, because those bullets are what people see. The installer's name has no spaces so it still matches `latest.yml` after uploading (GitHub turns spaces into dots).
+`npm run dist` still builds an installer into `dist/` for testing on your own PC.
 
 ## Website
 

@@ -33,17 +33,19 @@ jobs:
 
       - run: npm ci
 
-      # Google sign-in credentials are kept in a repository secret, not in the code
+      # Google sign-in credentials are kept in a repository secret, not in the code.
+      # Without them the app can't sign in to Google, so don't publish anything.
       - name: Add Google sign-in credentials
         shell: bash
         env:
           GOOGLE_OAUTH_JSON: ${{ secrets.GOOGLE_OAUTH_JSON }}
         run: |
-          if [ -n "$GOOGLE_OAUTH_JSON" ]; then
-            printf '%s' "$GOOGLE_OAUTH_JSON" > src/main/google-oauth.json
-          else
-            echo "::warning::GOOGLE_OAUTH_JSON secret not set; this build won't have Google sign-in"
+          if [ -z "$GOOGLE_OAUTH_JSON" ]; then
+            echo "::error::The GOOGLE_OAUTH_JSON repository secret is missing, so this build would have no Google sign-in. Add it under Settings > Secrets and variables > Actions, then run this workflow again."
+            exit 1
           fi
+          printf '%s' "$GOOGLE_OAUTH_JSON" > src/main/google-oauth.json
+          node -e "const c=require('./src/main/google-oauth.json'); if(!(c.installed||c).client_id) { console.error('::error::GOOGLE_OAUTH_JSON is not a valid Google OAuth client file'); process.exit(1); }"
 
       - name: Build and publish
         run: npm run release
